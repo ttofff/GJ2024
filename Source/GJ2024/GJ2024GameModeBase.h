@@ -13,5 +13,6 @@ UCLASS()
 class GJ2024_API AGJ2024GameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
-	
+
+	AGJ2024GameModeBase();
 };
