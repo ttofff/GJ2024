@@ -7,7 +7,7 @@
 #include "GJ2024GameModeBase.generated.h"
 
 /**
- * 这里是天马行空，测试
+ * 
  */
 UCLASS()
 class GJ2024_API AGJ2024GameModeBase : public AGameModeBase
