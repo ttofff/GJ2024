@@ -24,16 +24,20 @@ public:
 	float ClampCameraRotation = 0.f;
 
 	//限制相机旋转速度
-	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category = "Camera")
+	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category = "PlayerCamera")
 	float RotationRate;
 
 	//原始速度
-	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Speed")
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "PlayerSpeed")
 	float OriginalSpeed;
 
 	//疾跑速度
-	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Speed")
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "PlayerSpeed")
 	float AcceleratedSpeed;
+
+	//弹簧臂每次加减长度
+	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category = "PlayerCamera")
+	float ArmLengthValue;
 
 protected:
 	// Called when the game starts or when spawned
@@ -50,6 +54,12 @@ protected:
 	void Accelerate();
 
 	void Decelerate();
+	
+	void Jump();
+	
+	void StopJumping();
+
+	void ModifyArmLength(float value);
 
 public:	
 	// Called every frame

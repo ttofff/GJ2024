@@ -7,7 +7,8 @@
 
 // Sets default values
 AGJCharacter::AGJCharacter():
-RotationRate(0.3f)
+RotationRate(0.3f),
+ArmLengthValue(10.f)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -52,10 +53,17 @@ void AGJCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	//基本操作
 	PlayerInputComponent->BindAxis("Look", this, &AGJCharacter::Look);
 	PlayerInputComponent->BindAxis("Turn", this, &AGJCharacter::Turn);
+	
 	PlayerInputComponent->BindAxis("MoveForward", this, &AGJCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AGJCharacter::MoveRight);
+	
 	PlayerInputComponent->BindAction("Accelerated", IE_Pressed, this, &AGJCharacter::Accelerate);
 	PlayerInputComponent->BindAction("Accelerated", IE_Released, this, &AGJCharacter::Decelerate);
+	
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AGJCharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &AGJCharacter::StopJumping);
+
+	PlayerInputComponent->BindAxis("SpringArmLength", this, &AGJCharacter::ModifyArmLength);
 	
 }
 
@@ -122,5 +130,26 @@ void AGJCharacter::Accelerate()
 void AGJCharacter::Decelerate()
 {
 	GetCharacterMovement()->MaxWalkSpeed = OriginalSpeed;
+}
+
+//跳跃
+void AGJCharacter::Jump()
+{
+	ACharacter::Jump();
+	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red,
+	// 	FString::Printf(TEXT("JumpCurrentCount：%d"),JumpCurrentCount));
+}
+
+//停止跳跃
+void AGJCharacter::StopJumping()
+{
+	ACharacter::StopJumping();
+}
+
+//修改弹簧臂长度
+void AGJCharacter::ModifyArmLength(float value)
+{
+	float ClampLength = FMath::Clamp(value * ArmLengthValue + PlayerCameraSpringArm->TargetArmLength, 200.f, 600.f);
+	PlayerCameraSpringArm->TargetArmLength = ClampLength;
 }
 
