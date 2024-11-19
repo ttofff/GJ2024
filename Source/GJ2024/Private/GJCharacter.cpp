@@ -8,7 +8,8 @@
 // Sets default values
 AGJCharacter::AGJCharacter():
 RotationRate(0.3f),
-ArmLengthValue(10.f)
+ArmLengthValue(10.f),
+CharacterStates(ECharacterStates::E_Common)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -26,6 +27,10 @@ ArmLengthValue(10.f)
 	PlayerCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	PlayerCamera->SetupAttachment(PlayerCameraSpringArm);
 	PlayerCamera->bUsePawnControlRotation = false;
+
+	AttackBox = CreateDefaultSubobject<UBoxComponent>(TEXT("AttackBox"));
+	AttackBox->SetupAttachment(RootComponent);
+	AttackBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	
 }
 
@@ -64,6 +69,10 @@ void AGJCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &AGJCharacter::StopJumping);
 
 	PlayerInputComponent->BindAxis("SpringArmLength", this, &AGJCharacter::ModifyArmLength);
+
+	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &AGJCharacter::Attack);
+
+	PlayerInputComponent->BindAction("OpenBackpack", IE_Pressed, this, &AGJCharacter::OpenBackpack);
 	
 }
 
@@ -149,7 +158,33 @@ void AGJCharacter::StopJumping()
 //修改弹簧臂长度
 void AGJCharacter::ModifyArmLength(float value)
 {
-	float ClampLength = FMath::Clamp(value * ArmLengthValue + PlayerCameraSpringArm->TargetArmLength, 200.f, 600.f);
+	float ClampLength = FMath::Clamp(value * ArmLengthValue + PlayerCameraSpringArm->TargetArmLength, 300.f, 800.f);
 	PlayerCameraSpringArm->TargetArmLength = ClampLength;
 }
+
+//攻击
+void AGJCharacter::Attack()
+{
+	if(CharacterStates != ECharacterStates::E_Common) return;//防止攻击时再次攻击
+	
+	AttackBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	CharacterStates = ECharacterStates::E_Attack;
+
+	AttackBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	
+	FTimerHandle AttackTimerHandle;
+	GetWorldTimerManager().SetTimer(AttackTimerHandle,[this]()
+	{
+		CharacterStates = ECharacterStates::E_Common;
+	},.5f,false);
+}
+
+//打开背包
+void AGJCharacter::OpenBackpack()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("OpenBackpack")));
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("BackpackInfo.BackpackWeight：%f"), BackpackInfo.BackpackWeight));
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("BackpackInfo.WoodCnt：%d"), BackpackInfo.WoodCnt));
+}
+
 
