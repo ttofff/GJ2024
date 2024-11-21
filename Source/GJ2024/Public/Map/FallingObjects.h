@@ -11,9 +11,10 @@
 UENUM(BlueprintType)
 enum class EFallingObjects : uint8
 {
-	ECS_Tree UMETA (DisplayName = "Tree"),
-	ECS_Stone UMETA (DisplayName = "Stone"),
-	ECS_Food UMETA (DisplayName = "Food")
+	ECS_Tree UMETA (DisplayName = "Tree"),//树
+	ECS_Stone UMETA (DisplayName = "Stone"),//石头
+	ECS_Mineral UMETA (DisplayName = "Mineral"),//矿物
+	ECS_Food UMETA (DisplayName = "Food")//食物
 };
 
 //掉落物信息

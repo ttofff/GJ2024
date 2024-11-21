@@ -31,6 +31,10 @@ CharacterStates(ECharacterStates::E_Common)
 	AttackBox = CreateDefaultSubobject<UBoxComponent>(TEXT("AttackBox"));
 	AttackBox->SetupAttachment(RootComponent);
 	AttackBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	InteractiveSphereCollision = CreateDefaultSubobject<USphereComponent>(TEXT("InteractiveSphereCollision"));
+	InteractiveSphereCollision->SetupAttachment(RootComponent);
+	InteractiveSphereCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	
 }
 
@@ -72,6 +76,8 @@ void AGJCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &AGJCharacter::Attack);
 
+	PlayerInputComponent->BindAction("Interactive", IE_Pressed, this, &AGJCharacter::Interactive);
+
 	PlayerInputComponent->BindAction("OpenBackpack", IE_Pressed, this, &AGJCharacter::OpenBackpack);
 	
 }
@@ -79,8 +85,9 @@ void AGJCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 //上下移动视角
 void AGJCharacter::Look(float value)
 {
+	if(CharacterStates == ECharacterStates::E_Interaction || CharacterStates == ECharacterStates::E_Build) return;//防止交互时移动
 	float NewValue = ClampCameraRotation + value * RotationRate;
-	if (NewValue <= 40.f && NewValue >= -10.f)
+	if (NewValue <= 40.f && NewValue >=0.f)
 	{
 		ClampCameraRotation = NewValue;
 		AddControllerPitchInput(value * RotationRate);
@@ -91,7 +98,7 @@ void AGJCharacter::Look(float value)
 		{
 			ClampCameraRotation = 40.f;
 		}
-		else ClampCameraRotation = -10.f;
+		else ClampCameraRotation = 0.f;
 	}
 	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red,
 	// 			FString::Printf(TEXT("ClampCameraRotation：%f"),ClampCameraRotation));
@@ -100,13 +107,15 @@ void AGJCharacter::Look(float value)
 //左右移动视角
 void AGJCharacter::Turn(float value)
 {
+	if(CharacterStates == ECharacterStates::E_Interaction || CharacterStates == ECharacterStates::E_Build) return;//防止交互时移动
 	AddControllerYawInput(value * RotationRate);
 }
 
 //前后移动
 void AGJCharacter::MoveForward(float value)
 {
-	if ((Controller == nullptr) || (value != 0.0f))
+	if(CharacterStates == ECharacterStates::E_Interaction || CharacterStates == ECharacterStates::E_Build) return;//防止交互时移动
+	if ((Controller != nullptr) || (value != 0.0f))
 	{
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
@@ -119,7 +128,8 @@ void AGJCharacter::MoveForward(float value)
 //左右移动
 void AGJCharacter::MoveRight(float value)
 {
-	if ((Controller == nullptr) || (value != 0.0f))
+	if(CharacterStates == ECharacterStates::E_Interaction || CharacterStates == ECharacterStates::E_Build) return;//防止交互时移动
+	if ((Controller != nullptr) || (value != 0.0f))
 	{
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
@@ -158,6 +168,7 @@ void AGJCharacter::StopJumping()
 //修改弹簧臂长度
 void AGJCharacter::ModifyArmLength(float value)
 {
+	if(CharacterStates != ECharacterStates::E_Common) return;
 	float ClampLength = FMath::Clamp(value * ArmLengthValue + PlayerCameraSpringArm->TargetArmLength, 300.f, 800.f);
 	PlayerCameraSpringArm->TargetArmLength = ClampLength;
 }
@@ -179,12 +190,38 @@ void AGJCharacter::Attack()
 	},.5f,false);
 }
 
+//交互物品
+void AGJCharacter::Interactive()
+{
+	if(CharacterStates != ECharacterStates::E_Common && CharacterStates != ECharacterStates::E_Interaction) return;
+
+	InteractiveSphereCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	
+	InteractiveSphereCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	
+}
+
 //打开背包
 void AGJCharacter::OpenBackpack()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("OpenBackpack")));
 	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("BackpackInfo.BackpackWeight：%f"), BackpackInfo.BackpackWeight));
 	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("BackpackInfo.WoodCnt：%d"), BackpackInfo.WoodCnt));
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("BackpackInfo.StoneCnt：%d"), BackpackInfo.StoneCnt));
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("BackpackInfo.MineralCnt：%d"), BackpackInfo.MineralCnt));
 }
 
+//判断背包中是否有足够的材料
+bool AGJCharacter::CanProductItem(FString MaterialItemName, int32 MaterialCnt)
+{
+	bool bCanProduct = true;
+	if (MaterialItemName == TEXT("木材"))
+		bCanProduct = BackpackInfo.WoodCnt >= MaterialCnt;
+	else if(MaterialItemName == TEXT("石头"))
+		bCanProduct = BackpackInfo.StoneCnt >= MaterialCnt;
+	else if(MaterialItemName == TEXT("铁块"))
+		bCanProduct = BackpackInfo.MineralCnt >= MaterialCnt;
+	//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("CanProductItem：%d"), bCanProduct));
+	return bCanProduct;
+}
 

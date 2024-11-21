@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Camera/CameraComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/SphereComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GJCharacter.generated.h"
@@ -33,6 +34,9 @@ struct FBackpackInformation
 	int32 WoodCnt = 0;//木材数量
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	int32 StoneCnt = 0;//石头数量
+	
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	int32 MineralCnt = 0;//矿物数量
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
@@ -52,6 +56,9 @@ class GJ2024_API AGJCharacter : public ACharacter
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Attack", meta = (AllowPrivateAccess = "true"))
 	UBoxComponent* AttackBox;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interactive", meta = (AllowPrivateAccess = "true"))
+	USphereComponent* InteractiveSphereCollision;
 
 public:
 	//限制相机旋转角度
@@ -81,6 +88,19 @@ public:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "PlayerBackpack")
 	FBackpackInformation BackpackInfo;
 
+	//工作台是否打开
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Workbench")
+	bool bIsOpenedWorkbench;
+
+	//工作台合成信息
+	TMap<FString, TArray<TPair<FString, int32>>> WorkTables
+	{
+		{TEXT("斧子"),{{TEXT("木材"), 1}, {TEXT("石头"), 1}, {TEXT("铁块"), 1}}},
+		{TEXT("镐子"),{{TEXT("木材"), 1}, {TEXT("石头"), 2}}},
+		{TEXT("锄头"),{{TEXT("木材"), 2}, {TEXT("石头"), 2}}}
+	};
+
+	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -105,7 +125,12 @@ protected:
 
 	void Attack();
 
+	void Interactive();
+
 	void OpenBackpack();
+
+	UFUNCTION(BlueprintCallable)
+	bool CanProductItem(FString MaterialItemName, int32 MaterialCnt);
 
 public:
 	// Sets default values for this character's properties
@@ -116,4 +141,16 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	//获取工作台合成信息
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE int32 GetWorkTableItem(FText value) {return WorkTables[value.ToString()].Num();}
+
+	//获取工作台合成材料名称
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE FString GetWorkTableMaterialName(FText value, int32 index) {return WorkTables[value.ToString()][index].Key; }
+
+	//获取工作台合成材料数量
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE int32 GetWorkTableMaterialCnt(FText value, int32 index) {return WorkTables[value.ToString()][index].Value; }
 };
