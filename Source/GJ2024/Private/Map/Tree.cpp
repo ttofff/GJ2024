@@ -3,7 +3,10 @@
 
 #include "Map/Tree.h"
 #include "GJCharacter.h"
+#include "Engine/Internal/Kismet/BlueprintTypeConversions.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMaterialLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
 
 // Sets default values
 ATree::ATree()
@@ -39,25 +42,43 @@ void ATree::BeginPlay()
 void ATree::ChopDownTree(AActor* Player)
 {
 	AGJCharacter* GJPlayer = Cast<AGJCharacter>(Player);
-	if(--TreeHealCnt <= 0 && GJPlayer)
+	if(!GJPlayer) return;
+	
+	if(--TreeHealCnt <= 0)
 	{
 		TreeCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		TreeTrunkMeshComponent->SetSimulatePhysics(true);
-		
+
 		const FVector RightDirection = GJPlayer->GetActorRightVector() * -FallTreePower;
 		const FVector ForwardDirection = GJPlayer->GetActorForwardVector() * FallTreePower;
 		
-		FVector Direction = FMath::RandBool()? ForwardDirection : ForwardDirection + RightDirection;//随机方向
+		const FVector Direction = FMath::RandBool()? ForwardDirection : ForwardDirection + RightDirection;//随机方向
 		//冲量
 		TreeTrunkMeshComponent->AddImpulse(Direction, NAME_None, true);
-		
-		FTimerHandle DelayTimerHandle;
-		GetWorldTimerManager().SetTimer(DelayTimerHandle, [this]()
+
+		FTimerHandle SpawnTimerHandle;
+		GetWorldTimerManager().SetTimer(SpawnTimerHandle, [this]()
 		{
-			bIsChoppedDown = true;
+			bIsSpawn = true;
 		}, 4.f, false);
 	}
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("ChopDownTree")));
+
+	// FVector PlayerLocation = GJPlayer->GetActorLocation();
+	// FVector TreeLocation = GetActorLocation();
+	//
+	// FRotator NewRotation = UKismetMathLibrary::FindLookAtRotation(TreeLocation, PlayerLocation);
+	//
+	// float Angle = UKismetMathLibrary::NormalizedDeltaRotator(GetActorRotation(),NewRotation).Yaw;
+	//
+	// // if(FMath::RandBool())
+	// // {
+	// // 
+	// // }
+	// FallingDirection = FRotator(0.f, Angle, 0.f);
+	
+	
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red,
+		FString::Printf(TEXT("ChopDownTree")));
 }
 
 // Called every frame

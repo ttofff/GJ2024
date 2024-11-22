@@ -37,10 +37,13 @@ public:
 
 	//是否砍倒
 	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Tree")
-	bool bIsChoppedDown = false;
+	bool bIsSpawn = false;
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Tree")
 	float FallTreePower = 120.f;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Tree")
+	FRotator FallingDirection;
 
 protected:
 	// Called when the game starts or when spawned

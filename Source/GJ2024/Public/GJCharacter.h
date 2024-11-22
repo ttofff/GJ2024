@@ -21,6 +21,17 @@ enum class ECharacterStates : uint8
 	E_Interaction UMETA(DisplayName = "Interaction")//交互状态
 };
 
+//角色工具
+UENUM(BlueprintType)
+enum class ETools : uint8
+{
+	E_Hand UMETA(DisplayName = "Hand"),//空手
+	E_Axe UMETA(DisplayName = "Axe"),//斧子
+	E_Pickaxe UMETA(DisplayName = "Pickaxe"),//镐子
+	E_Hammer UMETA(DisplayName = "Hammer"),//锤子
+	E_Hoe UMETA(DisplayName = "Hoe")//锄头
+};
+
 //背包物品信息
 USTRUCT(BlueprintType)
 struct FBackpackInformation
@@ -41,6 +52,18 @@ struct FBackpackInformation
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	int32 FoodCnt = 0;//食物数量
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	bool bHaveAxe = false;//是否拥有斧子
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	bool bHavePickaxe = false;//是否拥有镐子
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	bool bHaveHammer = false;//是否拥有锤子
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	bool bHaveHoe = false;//是否拥有锄头
 };
 
 UCLASS()
@@ -82,7 +105,7 @@ public:
 
 	//角色状态
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "PlayerStates")
-	ECharacterStates CharacterStates;
+	ECharacterStates CharacterStates = ECharacterStates::E_Common;
 
 	//背包信息
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "PlayerBackpack")
@@ -90,7 +113,23 @@ public:
 
 	//工作台是否打开
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Workbench")
-	bool bIsOpenedWorkbench;
+	bool bIsOpenedWorkbench = false;
+
+	//工具种类
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Tools")
+	ETools ToolsType = ETools::E_Hand;
+
+	//上一种工具种类
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Tools")
+	ETools LastToolsType = ETools::E_Hand;
+
+	//是否生成工具
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Tools")
+	bool bIsSpawnTool = false;
+
+	//工具Actor
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Tools")
+	AActor* ToolActor;
 
 	//工作台合成信息
 	TMap<FString, TArray<TPair<FString, int32>>> WorkTables
@@ -131,6 +170,14 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	bool CanProductItem(FString MaterialItemName, int32 MaterialCnt);
+
+	UFUNCTION(BlueprintCallable)
+	void ReduceMaterials(FString MaterialItemName, int32 MaterialCnt);
+
+	UFUNCTION(BlueprintCallable)
+	bool GetProductItem(FString ItemName);
+
+	void UseAxe();
 
 public:
 	// Sets default values for this character's properties

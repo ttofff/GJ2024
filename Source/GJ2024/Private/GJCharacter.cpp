@@ -8,8 +8,7 @@
 // Sets default values
 AGJCharacter::AGJCharacter():
 RotationRate(0.3f),
-ArmLengthValue(10.f),
-CharacterStates(ECharacterStates::E_Common)
+ArmLengthValue(10.f)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -79,6 +78,7 @@ void AGJCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Interactive", IE_Pressed, this, &AGJCharacter::Interactive);
 
 	PlayerInputComponent->BindAction("OpenBackpack", IE_Pressed, this, &AGJCharacter::OpenBackpack);
+	PlayerInputComponent->BindAction("UseAxe", IE_Pressed, this, &AGJCharacter::UseAxe);
 	
 }
 
@@ -223,5 +223,57 @@ bool AGJCharacter::CanProductItem(FString MaterialItemName, int32 MaterialCnt)
 		bCanProduct = BackpackInfo.MineralCnt >= MaterialCnt;
 	//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("CanProductItem：%d"), bCanProduct));
 	return bCanProduct;
+}
+
+//消耗材料
+void AGJCharacter::ReduceMaterials(FString MaterialItemName, int32 MaterialCnt)
+{
+	if (MaterialItemName == TEXT("木材"))
+		BackpackInfo.WoodCnt -= MaterialCnt;
+	else if(MaterialItemName == TEXT("石头"))
+		BackpackInfo.StoneCnt -= MaterialCnt;
+	else if(MaterialItemName == TEXT("铁块"))
+		BackpackInfo.MineralCnt -= MaterialCnt;
+}
+
+//得到物品
+bool AGJCharacter::GetProductItem(FString ItemName)
+{
+	bool bHaveItem = false;//判断是否已经拥有该工具
+	if (ItemName == TEXT("斧子"))
+		bHaveItem = BackpackInfo.bHaveAxe = true;
+	else if (ItemName == TEXT("锤子"))
+		bHaveItem = BackpackInfo.bHaveHammer = true;
+	else if(ItemName == TEXT("镐子"))
+		bHaveItem = BackpackInfo.bHavePickaxe = true;
+	else if(ItemName == TEXT("锄头"))
+		bHaveItem = BackpackInfo.bHaveHoe = true;
+
+	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Blue, FString::Printf(TEXT("BackpackInfo.bHaveAxe：%d"), BackpackInfo.bHaveAxe));
+	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Blue, FString::Printf(TEXT("BackpackInfo.bHaveHammer：%d"), BackpackInfo.bHaveHammer));
+	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Blue, FString::Printf(TEXT("BackpackInfo.bHavePickaxe：%d"), BackpackInfo.bHavePickaxe));
+	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Blue, FString::Printf(TEXT("BackpackInfo.bHaveHoe：%d"), BackpackInfo.bHaveHoe));
+
+	return bHaveItem;
+}
+
+//使用斧子
+void AGJCharacter::UseAxe()
+{
+	if (BackpackInfo.bHaveAxe && ToolsType != ETools::E_Axe)
+	{
+		LastToolsType = ToolsType;//记录上一次的工具类型
+		ToolsType = ETools::E_Axe;
+		bIsSpawnTool = true;
+		if(LastToolsType != ETools::E_Hand && ToolActor != nullptr)
+			ToolActor->Destroy();//销毁上一个的工具
+	}
+	else if (ToolsType == ETools::E_Axe)
+	{
+		LastToolsType = ToolsType;
+		ToolsType = ETools::E_Hand;
+		if (ToolActor != nullptr)
+			ToolActor->Destroy();//销毁工具	
+	}
 }
 

@@ -17,7 +17,7 @@ AFallingObjects::AFallingObjects()
 	FallingObjectsMeshComponent->SetupAttachment(RootComponent);
 
 	SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
-	SphereComponent->SetupAttachment(RootComponent);
+	SphereComponent->SetupAttachment(FallingObjectsMeshComponent);
 
 }
 
