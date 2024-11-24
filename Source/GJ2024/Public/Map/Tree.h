@@ -31,9 +31,9 @@ class GJ2024_API ATree : public AActor
 public:
 	UPROPERTY(EditAnywhere,BlueprintReadOnly, Category = "Tree")
 	int32 TreeHealCnt = 3;
-
-	UPROPERTY(EditAnywhere,BlueprintReadOnly, Category = "Tree")
-	FItemInfo TreeItemInfo;
+	
+	// UPROPERTY(EditAnywhere,BlueprintReadOnly, Category = "Tree")
+	// FItemInfo TreeItemInfo;
 
 	//是否砍倒
 	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Tree")

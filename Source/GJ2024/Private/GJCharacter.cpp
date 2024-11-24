@@ -22,9 +22,17 @@ ArmLengthValue(10.f)
 	PlayerCameraSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringArm"));
 	PlayerCameraSpringArm->SetupAttachment(RootComponent);
 	PlayerCameraSpringArm->bUsePawnControlRotation = true;
+
+	FollowCameraSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("FollowCameraSpringArm"));
+	FollowCameraSpringArm->SetupAttachment(PlayerCameraSpringArm);
+	FollowCameraSpringArm->TargetArmLength = 0.f;
+	FollowCameraSpringArm->bUsePawnControlRotation = false;
+	FollowCameraSpringArm->bDoCollisionTest = false;
+	FollowCameraSpringArm->bEnableCameraLag = true;
+	FollowCameraSpringArm->bEnableCameraRotationLag = true;
 	
 	PlayerCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	PlayerCamera->SetupAttachment(PlayerCameraSpringArm);
+	PlayerCamera->SetupAttachment(FollowCameraSpringArm);
 	PlayerCamera->bUsePawnControlRotation = false;
 
 	AttackBox = CreateDefaultSubobject<UBoxComponent>(TEXT("AttackBox"));
@@ -78,7 +86,14 @@ void AGJCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Interactive", IE_Pressed, this, &AGJCharacter::Interactive);
 
 	PlayerInputComponent->BindAction("OpenBackpack", IE_Pressed, this, &AGJCharacter::OpenBackpack);
-	PlayerInputComponent->BindAction("UseAxe", IE_Pressed, this, &AGJCharacter::UseAxe);
+	PlayerInputComponent->BindAction("OpenChangeMesh", IE_Pressed, this, &AGJCharacter::OpenChangeMesh);
+	
+	PlayerInputComponent->BindAction("UsedShortcut_1", IE_Pressed, this, &AGJCharacter::UsedShortcut_1);
+	PlayerInputComponent->BindAction("UsedShortcut_2", IE_Pressed, this, &AGJCharacter::UsedShortcut_2);
+	PlayerInputComponent->BindAction("UsedShortcut_3", IE_Pressed, this, &AGJCharacter::UsedShortcut_3);
+
+	PlayerInputComponent->BindAction("ChangeMesh_1", IE_Pressed, this, &AGJCharacter::ChangeMesh_1);
+	PlayerInputComponent->BindAction("ChangeMesh_2", IE_Pressed, this, &AGJCharacter::ChangeMesh_2);
 	
 }
 
@@ -204,11 +219,11 @@ void AGJCharacter::Interactive()
 //打开背包
 void AGJCharacter::OpenBackpack()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("OpenBackpack")));
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("BackpackInfo.BackpackWeight：%f"), BackpackInfo.BackpackWeight));
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("BackpackInfo.WoodCnt：%d"), BackpackInfo.WoodCnt));
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("BackpackInfo.StoneCnt：%d"), BackpackInfo.StoneCnt));
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("BackpackInfo.MineralCnt：%d"), BackpackInfo.MineralCnt));
+	if(CharacterStates != ECharacterStates::E_Common && CharacterStates != ECharacterStates::E_OpenBackpack) return;
+	IsOpenBackpack = true;
+	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("BackpackInfo.WoodCnt: %d"),BackpackInfo.WoodCnt));
+	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("BackpackInfo.StoneCnt: %d"),BackpackInfo.StoneCnt));
+	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("BackpackInfo.IronCnt: %d"),BackpackInfo.IronCnt));
 }
 
 //判断背包中是否有足够的材料
@@ -220,7 +235,7 @@ bool AGJCharacter::CanProductItem(FString MaterialItemName, int32 MaterialCnt)
 	else if(MaterialItemName == TEXT("石头"))
 		bCanProduct = BackpackInfo.StoneCnt >= MaterialCnt;
 	else if(MaterialItemName == TEXT("铁块"))
-		bCanProduct = BackpackInfo.MineralCnt >= MaterialCnt;
+		bCanProduct = BackpackInfo.IronCnt >= MaterialCnt;
 	//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("CanProductItem：%d"), bCanProduct));
 	return bCanProduct;
 }
@@ -233,11 +248,11 @@ void AGJCharacter::ReduceMaterials(FString MaterialItemName, int32 MaterialCnt)
 	else if(MaterialItemName == TEXT("石头"))
 		BackpackInfo.StoneCnt -= MaterialCnt;
 	else if(MaterialItemName == TEXT("铁块"))
-		BackpackInfo.MineralCnt -= MaterialCnt;
+		BackpackInfo.IronCnt -= MaterialCnt;
 }
 
 //得到物品
-bool AGJCharacter::GetProductItem(FString ItemName)
+bool   AGJCharacter::GetProductItem(FString ItemName)
 {
 	bool bHaveItem = false;//判断是否已经拥有该工具
 	if (ItemName == TEXT("斧子"))
@@ -246,8 +261,6 @@ bool AGJCharacter::GetProductItem(FString ItemName)
 		bHaveItem = BackpackInfo.bHaveHammer = true;
 	else if(ItemName == TEXT("镐子"))
 		bHaveItem = BackpackInfo.bHavePickaxe = true;
-	else if(ItemName == TEXT("锄头"))
-		bHaveItem = BackpackInfo.bHaveHoe = true;
 
 	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Blue, FString::Printf(TEXT("BackpackInfo.bHaveAxe：%d"), BackpackInfo.bHaveAxe));
 	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Blue, FString::Printf(TEXT("BackpackInfo.bHaveHammer：%d"), BackpackInfo.bHaveHammer));
@@ -257,23 +270,77 @@ bool AGJCharacter::GetProductItem(FString ItemName)
 	return bHaveItem;
 }
 
-//使用斧子
-void AGJCharacter::UseAxe()
+//使用快捷键
+void AGJCharacter::UsedShortcut(int32 Index)
 {
-	if (BackpackInfo.bHaveAxe && ToolsType != ETools::E_Axe)
+	if (!ShortcutIsEmpty[Index])
 	{
-		LastToolsType = ToolsType;//记录上一次的工具类型
-		ToolsType = ETools::E_Axe;
-		bIsSpawnTool = true;
-		if(LastToolsType != ETools::E_Hand && ToolActor != nullptr)
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, FString::Printf(TEXT("ShortcutIsEmpty[Index]：%d"), ShortcutIsEmpty[Index]));
+		if (ToolActor == nullptr)
+		{
+			CurrentShortcutIndex = Index;//记录当前快捷键的索引
+			LastShortcutIndex = Index;//记录上一个快捷键的索引
+			bIsSpawnTool = true;
+			//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Blue, FString::Printf(TEXT("ToolActor == nullptr")));
+		}
+		else
+		{
+			//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, FString::Printf(TEXT("ToolActor != nullptr")));
 			ToolActor->Destroy();//销毁上一个的工具
-	}
-	else if (ToolsType == ETools::E_Axe)
-	{
-		LastToolsType = ToolsType;
-		ToolsType = ETools::E_Hand;
-		if (ToolActor != nullptr)
-			ToolActor->Destroy();//销毁工具	
+			ToolActor = nullptr;
+			
+			if(LastShortcutIndex != Index)
+			{
+				CurrentShortcutIndex = Index;//记录当前快捷键的索引
+				LastShortcutIndex = Index;//记录上一个快捷键的索引
+				bIsSpawnTool = true;
+			}
+			else
+			{
+				CurrentShortcutIndex = -1;//记录当前快捷键的索引
+			}
+		}
 	}
 }
+
+//使用快捷键1
+void AGJCharacter::UsedShortcut_1()
+{
+	if(CharacterStates != ECharacterStates::E_Common) return;
+	UsedShortcut(0);
+}
+
+//使用快捷键2
+void AGJCharacter::UsedShortcut_2()
+{
+	if(CharacterStates != ECharacterStates::E_Common) return;
+	UsedShortcut(1);
+}
+
+//使用快捷键3
+void AGJCharacter::UsedShortcut_3()
+{
+	if(CharacterStates != ECharacterStates::E_Common) return;
+	UsedShortcut(2);
+}
+
+//变身
+void AGJCharacter::OpenChangeMesh()
+{
+	if(CharacterStates != ECharacterStates::E_Common && CharacterStates != ECharacterStates::E_OpenChangeMesh) return;
+	IsOpenChangeMesh = true;
+}
+
+void AGJCharacter::ChangeMesh_1()
+{
+	if(ChangeClassType_EKey == EChangeClass::E_Human || CharacterStates != ECharacterStates::E_Common) return;
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, FString::Printf(TEXT("ChangeClassType_EKey: %s"),*UEnum::GetValueAsString(ChangeClassType_QKey)));
+}
+
+void AGJCharacter::ChangeMesh_2()
+{
+	if(ChangeClassType_EKey == EChangeClass::E_Human || CharacterStates != ECharacterStates::E_Common) return;
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Blue, FString::Printf(TEXT("ChangeClassType_QKey：%s"),*UEnum::GetValueAsString(ChangeClassType_EKey)));
+}
+
 

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Components/SphereComponent.h"
+#include "GJCharacter.h"
 #include "FallingObjects.generated.h"
 
 //掉落物种类
@@ -45,17 +46,20 @@ class GJ2024_API AFallingObjects : public AActor
 	USphereComponent* SphereComponent;
 	
 public:
-	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "FallingObjectsItem")
-	FItemInfo ItemInfo;
+	// UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "FallingObjectsItem")
+	// FItemInfo ItemInfo;
 
 	FRotator RotationRate;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "FallingObjectsItem")
+	EBackpackClass ItemBackpackClass;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "FallingObjectsItem")
+	int32 Cnt = 1;
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-	UFUNCTION()
-	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 public:
 	// Sets default values for this actor's properties

@@ -26,51 +26,6 @@ void AFallingObjects::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AFallingObjects::OnOverlapBegin);
-	
-}
-
-//组件开始重叠
-void AFallingObjects::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (OtherActor->ActorHasTag("Player"))
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, TEXT("Pickup"));
-		//装进背包
-		AGJCharacter* Player = Cast<AGJCharacter>(OtherActor);
-		if (Player)
-		{
-			switch (ItemInfo.FallingObjectsType)
-			{
-				case EFallingObjects::ECS_Tree:
-					{
-						Player->BackpackInfo.WoodCnt += ItemInfo.Cnt;
-						Player->BackpackInfo.BackpackWeight -= ItemInfo.Cnt;
-						break;
-					}
-				case EFallingObjects::ECS_Stone:
-					{
-						Player->BackpackInfo.StoneCnt += ItemInfo.Cnt;
-						Player->BackpackInfo.BackpackWeight -= ItemInfo.Cnt;
-						break;
-					}
-				case EFallingObjects::ECS_Mineral:
-					{
-						Player->BackpackInfo.MineralCnt += ItemInfo.Cnt;
-						Player->BackpackInfo.BackpackWeight -= ItemInfo.Cnt;
-						break;	
-					}
-				case EFallingObjects::ECS_Food:
-					{
-						Player->BackpackInfo.FoodCnt += ItemInfo.Cnt;
-						Player->BackpackInfo.BackpackWeight -= ItemInfo.Cnt;
-						break;
-					}
-			}
-			Destroy();
-		}
-	}
 }
 
 // Called every frame

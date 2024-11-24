@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "NiagaraComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/SphereComponent.h"
@@ -18,7 +19,9 @@ enum class ECharacterStates : uint8
 	E_Jump UMETA(DisplayName = "Jump"),//跳跃状态
 	E_Attack UMETA(DisplayName = "Attack"),//攻击状态
 	E_Build UMETA(DisplayName = "Build"),//建造状态
-	E_Interaction UMETA(DisplayName = "Interaction")//交互状态
+	E_Interaction UMETA(DisplayName = "Interaction"),//交互状态
+	E_OpenBackpack UMETA(DisplayName = "OpenBackpack"),//打开背包状态
+	E_OpenChangeMesh UMETA(DisplayName = "OpenChangeMesh")//打开变身状态
 };
 
 //角色工具
@@ -28,8 +31,29 @@ enum class ETools : uint8
 	E_Hand UMETA(DisplayName = "Hand"),//空手
 	E_Axe UMETA(DisplayName = "Axe"),//斧子
 	E_Pickaxe UMETA(DisplayName = "Pickaxe"),//镐子
-	E_Hammer UMETA(DisplayName = "Hammer"),//锤子
-	E_Hoe UMETA(DisplayName = "Hoe")//锄头
+	E_Hammer UMETA(DisplayName = "Hammer")//锤子
+};
+
+UENUM(BlueprintType)
+enum class EBackpackClass : uint8
+{
+	E_Wood UMETA(DisplayName = "Wood"),//木材
+	E_Stone UMETA(DisplayName = "Stone"),//石头
+	E_Iron UMETA(DisplayName = "Iron"),//铁矿
+	E_Food UMETA(DisplayName = "Food"),//食物
+	E_Axe UMETA(DisplayName = "Axe"),//斧子
+	E_Pickaxe UMETA(DisplayName = "Pickaxe"),//镐子
+	E_Hammer UMETA(DisplayName = "Hammer")//锤子
+};
+
+//角色变身种类
+UENUM(BlueprintType)
+enum class EChangeClass : uint8
+{
+	E_Human UMETA(DisplayName = "Human"),//人类
+	E_Cat UMETA(DisplayName = "Cat"),//猫
+	E_Tree UMETA(DisplayName = "Tree"),//树
+	E_Stone UMETA(DisplayName = "Stone"),//石头
 };
 
 //背包物品信息
@@ -48,7 +72,7 @@ struct FBackpackInformation
 	int32 StoneCnt = 0;//石头数量
 	
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
-	int32 MineralCnt = 0;//矿物数量
+	int32 IronCnt = 0;//铁矿数量
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	int32 FoodCnt = 0;//食物数量
@@ -62,8 +86,6 @@ struct FBackpackInformation
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	bool bHaveHammer = false;//是否拥有锤子
 
-	UPROPERTY(EditAnywhere,BlueprintReadWrite)
-	bool bHaveHoe = false;//是否拥有锄头
 };
 
 UCLASS()
@@ -75,6 +97,9 @@ class GJ2024_API AGJCharacter : public ACharacter
 	USpringArmComponent* PlayerCameraSpringArm;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+	USpringArmComponent* FollowCameraSpringArm;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* PlayerCamera;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Attack", meta = (AllowPrivateAccess = "true"))
@@ -82,6 +107,10 @@ class GJ2024_API AGJCharacter : public ACharacter
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interactive", meta = (AllowPrivateAccess = "true"))
 	USphereComponent* InteractiveSphereCollision;
+
+	//改变角色模型的粒子系统
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category = "NiagaraComponent", meta = (AllowPrivateAccess = "true"))
+	UNiagaraComponent* ChangeMeshNiagaraComponent;
 
 public:
 	//限制相机旋转角度
@@ -115,6 +144,10 @@ public:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Workbench")
 	bool bIsOpenedWorkbench = false;
 
+	//背包是否打开
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Backpack")
+	bool bIsOpenedBackpack = false;
+
 	//工具种类
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Tools")
 	ETools ToolsType = ETools::E_Hand;
@@ -131,12 +164,49 @@ public:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Tools")
 	AActor* ToolActor;
 
+	//是否打开背包
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "UI")
+	bool IsOpenBackpack = false;
+
+	//是否打开变身
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "UI")
+	bool IsOpenChangeMesh = false;
+
+	//是否已经打开变身
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "UI")
+	bool IsOpenedChangeMesh = false;
+
+	//快捷栏是否为空
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Tools")
+	TArray<bool> ShortcutIsEmpty;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Tools")
+	int32 CurrentShortcutIndex = -1;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Tools")
+	int32 LastShortcutIndex = -1;
+
+	//变身粒子特效
+	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category = "NiagaraComponent")
+	UNiagaraSystem* ChangeMeshNiagaraSystem;
+	
+	//变身类型
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ChangeClass")
+	EChangeClass ChangeClassType_EKey = EChangeClass::E_Human;
+
+	//变身类型
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ChangeClass")
+	EChangeClass ChangeClassType_QKey = EChangeClass::E_Human;
+
+	
+
 	//工作台合成信息
 	TMap<FString, TArray<TPair<FString, int32>>> WorkTables
 	{
 		{TEXT("斧子"),{{TEXT("木材"), 1}, {TEXT("石头"), 1}, {TEXT("铁块"), 1}}},
 		{TEXT("镐子"),{{TEXT("木材"), 1}, {TEXT("石头"), 2}}},
-		{TEXT("锄头"),{{TEXT("木材"), 2}, {TEXT("石头"), 2}}}
+		{TEXT("锄头"),{{TEXT("木材"), 2}, {TEXT("石头"), 2}}},
+		{TEXT("锤子"),{{TEXT("木材"), 3}, {TEXT("石头"), 3}}}
 	};
 
 	
@@ -177,7 +247,19 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	bool GetProductItem(FString ItemName);
 
-	void UseAxe();
+	void UsedShortcut(int32 Index);
+	
+	void UsedShortcut_1();
+
+	void UsedShortcut_2();
+
+	void UsedShortcut_3();
+
+	void OpenChangeMesh();
+
+	void ChangeMesh_1();
+
+	void ChangeMesh_2();
 
 public:
 	// Sets default values for this character's properties
