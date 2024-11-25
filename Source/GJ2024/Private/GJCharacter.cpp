@@ -42,7 +42,10 @@ ArmLengthValue(10.f)
 	InteractiveSphereCollision = CreateDefaultSubobject<USphereComponent>(TEXT("InteractiveSphereCollision"));
 	InteractiveSphereCollision->SetupAttachment(RootComponent);
 	InteractiveSphereCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	
+
+	ChangeMeshNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ChangeMeshNiagara"));
+	ChangeMeshNiagaraComponent->SetupAttachment(GetMesh());
+	ChangeMeshNiagaraComponent->SetAutoActivate(false);
 }
 
 // Called when the game starts or when spawned
@@ -331,16 +334,53 @@ void AGJCharacter::OpenChangeMesh()
 	IsOpenChangeMesh = true;
 }
 
-void AGJCharacter::ChangeMesh_1()
+//变身
+void AGJCharacter::ChangeMesh(EChangeClass ChangeClassType)
 {
-	if(ChangeClassType_EKey == EChangeClass::E_Human || CharacterStates != ECharacterStates::E_Common) return;
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, FString::Printf(TEXT("ChangeClassType_EKey: %s"),*UEnum::GetValueAsString(ChangeClassType_QKey)));
+	int32 Index = -1;
+	switch (ChangeClassType)
+	{
+		case EChangeClass::E_Cat: Index = 0; break; //猫
+		case EChangeClass::E_Tree: Index = 1; break; //树
+		case EChangeClass::E_Stone: Index = 2; break; //石头
+	}
+	
+	if (ChangeMeshNiagaraSystem && ChangeMeshNiagaraComponent)
+	{
+		ChangeMeshNiagaraComponent->SetAsset(ChangeMeshNiagaraSystem);
+		ChangeMeshNiagaraComponent->Activate();
+		
+		APlayerController * PlayerController = GetWorld()->GetFirstPlayerController();
+		
+		if (MeshArray[Index] && PlayerController)//变身
+		{
+			PlayerController->DisableInput(PlayerController);
+			FTimerHandle ChangeMeshTimerHandle;
+			GetWorldTimerManager().SetTimer(ChangeMeshTimerHandle,[this, Index,PlayerController]()
+			{
+				GetMesh()->SetSkeletalMesh(MeshArray[Index]);
+				PlayerController->EnableInput(PlayerController);
+			},0.5f,false);
+		}
+	}
 }
 
+//Q键变身
+void AGJCharacter::ChangeMesh_1()
+{
+	if(ChangeClassType_QKey == EChangeClass::E_Human || CharacterStates != ECharacterStates::E_Common) return;
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red,
+		FString::Printf(TEXT("ChangeClassType_QKey: %s"),*UEnum::GetValueAsString(ChangeClassType_QKey)));
+	ChangeMesh(ChangeClassType_QKey);
+}
+
+//E键变身
 void AGJCharacter::ChangeMesh_2()
 {
 	if(ChangeClassType_EKey == EChangeClass::E_Human || CharacterStates != ECharacterStates::E_Common) return;
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Blue, FString::Printf(TEXT("ChangeClassType_QKey：%s"),*UEnum::GetValueAsString(ChangeClassType_EKey)));
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Blue,
+		FString::Printf(TEXT("ChangeClassType_EKey：%s"),*UEnum::GetValueAsString(ChangeClassType_EKey)));
+	ChangeMesh(ChangeClassType_EKey);
 }
 
 

@@ -198,7 +198,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ChangeClass")
 	EChangeClass ChangeClassType_QKey = EChangeClass::E_Human;
 
-	
+	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category = "ChangeMesh")
+	TArray<USkeletalMesh*> MeshArray;//模型数组
 
 	//工作台合成信息
 	TMap<FString, TArray<TPair<FString, int32>>> WorkTables
@@ -257,6 +258,8 @@ protected:
 
 	void OpenChangeMesh();
 
+	void ChangeMesh(EChangeClass ChangeClassType);
+	
 	void ChangeMesh_1();
 
 	void ChangeMesh_2();
