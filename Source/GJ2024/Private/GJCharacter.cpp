@@ -4,6 +4,7 @@
 #include "GJCharacter.h"
 
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AGJCharacter::AGJCharacter():
@@ -132,7 +133,7 @@ void AGJCharacter::Turn(float value)
 //前后移动
 void AGJCharacter::MoveForward(float value)
 {
-	if(CharacterStates == ECharacterStates::E_Interaction || CharacterStates == ECharacterStates::E_Build) return;//防止交互时移动
+	if(CharacterStates == ECharacterStates::E_Interaction || CharacterStates == ECharacterStates::E_Build || bIsChangingMesh) return;//防止交互时移动
 	if ((Controller != nullptr) || (value != 0.0f))
 	{
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -146,7 +147,7 @@ void AGJCharacter::MoveForward(float value)
 //左右移动
 void AGJCharacter::MoveRight(float value)
 {
-	if(CharacterStates == ECharacterStates::E_Interaction || CharacterStates == ECharacterStates::E_Build) return;//防止交互时移动
+	if(CharacterStates == ECharacterStates::E_Interaction || CharacterStates == ECharacterStates::E_Build || bIsChangingMesh) return;//防止交互时移动
 	if ((Controller != nullptr) || (value != 0.0f))
 	{
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -340,47 +341,70 @@ void AGJCharacter::ChangeMesh(EChangeClass ChangeClassType)
 	int32 Index = -1;
 	switch (ChangeClassType)
 	{
-		case EChangeClass::E_Cat: Index = 0; break; //猫
-		case EChangeClass::E_Tree: Index = 1; break; //树
-		case EChangeClass::E_Stone: Index = 2; break; //石头
+		case EChangeClass::E_Human: Index = 0; break; //人
+		case EChangeClass::E_Cat: Index = 1; break; //猫
+		case EChangeClass::E_Tree: Index = 2; break; //树
+		case EChangeClass::E_Stone: Index = 3; break; //石头
 	}
-	
-	if (ChangeMeshNiagaraSystem && ChangeMeshNiagaraComponent)
+
+	//变身
+	if (ChangeMeshNiagaraSystem && ChangeMeshNiagaraComponent
+		&& ChangeMeshArray[Index] && ChangeMeshArrayAnims[Index])
 	{
 		ChangeMeshNiagaraComponent->SetAsset(ChangeMeshNiagaraSystem);
 		ChangeMeshNiagaraComponent->Activate();
-		
-		APlayerController * PlayerController = GetWorld()->GetFirstPlayerController();
-		
-		if (MeshArray[Index] && PlayerController)//变身
+
+		bIsChangingMesh = true;
+			
+		FTimerHandle ChangeMeshTimerHandle;
+		GetWorldTimerManager().SetTimer(ChangeMeshTimerHandle,[this, Index]()
 		{
-			PlayerController->DisableInput(PlayerController);
-			FTimerHandle ChangeMeshTimerHandle;
-			GetWorldTimerManager().SetTimer(ChangeMeshTimerHandle,[this, Index,PlayerController]()
+			GetMesh()->SetSkeletalMesh(ChangeMeshArray[Index]);
+			GetMesh()->SetAnimClass(ChangeMeshArrayAnims[Index]);
+			FTimerHandle ChangeMeshTimerHandle2;
+			GetWorldTimerManager().SetTimer(ChangeMeshTimerHandle2,[this]()
 			{
-				GetMesh()->SetSkeletalMesh(MeshArray[Index]);
-				PlayerController->EnableInput(PlayerController);
-			},0.5f,false);
-		}
+				ChangeMeshNiagaraComponent->Deactivate();
+				bIsChangingMesh = false; //变身完成
+			},0.2f,false);
+		},1.f,false);
+		
 	}
 }
 
 //Q键变身
 void AGJCharacter::ChangeMesh_1()
 {
-	if(ChangeClassType_QKey == EChangeClass::E_Human || CharacterStates != ECharacterStates::E_Common) return;
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red,
-		FString::Printf(TEXT("ChangeClassType_QKey: %s"),*UEnum::GetValueAsString(ChangeClassType_QKey)));
-	ChangeMesh(ChangeClassType_QKey);
+	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red,
+	// 	FString::Printf(TEXT("ChangeClassType_QKey: %s"),*UEnum::GetValueAsString(ChangeClassType_QKey)));
+	if (CharacterStates == ECharacterStates::E_Common && ChangeClassType_QKey != EChangeClass::E_Human)
+	{
+		CharacterStates = ECharacterStates::E_ChangeMesh; //变身状态
+		ChangeMesh(ChangeClassType_QKey);
+	}
+	else if (CharacterStates == ECharacterStates::E_ChangeMesh)
+	{
+		CharacterStates = ECharacterStates::E_Common; //变身状态
+		ChangeMesh(EChangeClass::E_Human);
+	}
+	
 }
 
 //E键变身
 void AGJCharacter::ChangeMesh_2()
 {
-	if(ChangeClassType_EKey == EChangeClass::E_Human || CharacterStates != ECharacterStates::E_Common) return;
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Blue,
-		FString::Printf(TEXT("ChangeClassType_EKey：%s"),*UEnum::GetValueAsString(ChangeClassType_EKey)));
-	ChangeMesh(ChangeClassType_EKey);
+	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red,
+	// 	FString::Printf(TEXT("ChangeClassType_QKey: %s"),*UEnum::GetValueAsString(ChangeClassType_QKey)));
+	if (CharacterStates == ECharacterStates::E_Common && ChangeClassType_EKey != EChangeClass::E_Human)
+	{
+		CharacterStates = ECharacterStates::E_ChangeMesh; //变身状态
+		ChangeMesh(ChangeClassType_EKey);
+	}
+	else if (CharacterStates == ECharacterStates::E_ChangeMesh)
+	{
+		CharacterStates = ECharacterStates::E_Common; //变身状态
+		ChangeMesh(EChangeClass::E_Human);
+	}
 }
 
 

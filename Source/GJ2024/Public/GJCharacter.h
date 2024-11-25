@@ -21,7 +21,8 @@ enum class ECharacterStates : uint8
 	E_Build UMETA(DisplayName = "Build"),//建造状态
 	E_Interaction UMETA(DisplayName = "Interaction"),//交互状态
 	E_OpenBackpack UMETA(DisplayName = "OpenBackpack"),//打开背包状态
-	E_OpenChangeMesh UMETA(DisplayName = "OpenChangeMesh")//打开变身状态
+	E_OpenChangeMesh UMETA(DisplayName = "OpenChangeMesh"),//打开变身状态
+	E_ChangeMesh UMETA(DisplayName = "ChangeMesh")//变身状态
 };
 
 //角色工具
@@ -198,9 +199,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ChangeClass")
 	EChangeClass ChangeClassType_QKey = EChangeClass::E_Human;
 
+	//模型数组
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category = "ChangeMesh")
-	TArray<USkeletalMesh*> MeshArray;//模型数组
+	TArray<USkeletalMesh*> ChangeMeshArray;
 
+	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category = "ChangeMesh")
+	TArray<UClass*> ChangeMeshArrayAnims;
+
+	bool bIsChangingMesh = false;//是否正在变身
 	//工作台合成信息
 	TMap<FString, TArray<TPair<FString, int32>>> WorkTables
 	{
