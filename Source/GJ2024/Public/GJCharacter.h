@@ -22,7 +22,8 @@ enum class ECharacterStates : uint8
 	E_Interaction UMETA(DisplayName = "Interaction"),//交互状态
 	E_OpenBackpack UMETA(DisplayName = "OpenBackpack"),//打开背包状态
 	E_OpenChangeMesh UMETA(DisplayName = "OpenChangeMesh"),//打开变身状态
-	E_ChangeMesh UMETA(DisplayName = "ChangeMesh")//变身状态
+	E_ChangeMesh UMETA(DisplayName = "ChangeMesh"),//变身状态
+	E_SelectChangeMesh UMETA(DisplayName = "SelectChangeMesh")//选择变身状态
 };
 
 //角色工具
@@ -107,7 +108,7 @@ class GJ2024_API AGJCharacter : public ACharacter
 	UBoxComponent* AttackBox;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interactive", meta = (AllowPrivateAccess = "true"))
-	USphereComponent* InteractiveSphereCollision;
+	UBoxComponent* InteractiveBoxCollision;
 
 	//改变角色模型的粒子系统
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category = "NiagaraComponent", meta = (AllowPrivateAccess = "true"))
@@ -193,11 +194,11 @@ public:
 	
 	//变身类型
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ChangeClass")
-	EChangeClass ChangeClassType_EKey = EChangeClass::E_Human;
+	EChangeClass ChangeClassType_1Key = EChangeClass::E_Human;
 
 	//变身类型
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ChangeClass")
-	EChangeClass ChangeClassType_QKey = EChangeClass::E_Human;
+	EChangeClass ChangeClassType_2Key = EChangeClass::E_Human;
 
 	//模型数组
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category = "ChangeMesh")
@@ -207,6 +208,22 @@ public:
 	TArray<UClass*> ChangeMeshArrayAnims;
 
 	bool bIsChangingMesh = false;//是否正在变身
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "ChangeMesh")
+	bool bIsOpenSelectChangeMesh = false;
+
+	//是否已经打开选择变身界面
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "ChangeMesh")
+	bool bIsClosedSelectChangeMesh = false;
+
+	//是否可以重新开始
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Restart")
+	bool bCanRestart = false;
+
+	//重新开始位置
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Restart")
+	FTransform RestartTransform;
+	
 	//工作台合成信息
 	TMap<FString, TArray<TPair<FString, int32>>> WorkTables
 	{
@@ -265,9 +282,11 @@ protected:
 	void OpenChangeMesh();
 
 	void ChangeMesh(EChangeClass ChangeClassType);
-	
+
+	UFUNCTION(BlueprintCallable)
 	void ChangeMesh_1();
 
+	UFUNCTION(BlueprintCallable)
 	void ChangeMesh_2();
 
 public:

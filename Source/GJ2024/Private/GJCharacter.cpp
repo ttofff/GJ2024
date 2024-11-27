@@ -3,6 +3,7 @@
 
 #include "GJCharacter.h"
 
+#include "../../../../../UE5/UE_5.2/Engine/Plugins/Experimental/NNE/Source/ThirdParty/onnxruntime/Dependencies/gsl/gsl-lite.hpp"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -40,9 +41,9 @@ ArmLengthValue(10.f)
 	AttackBox->SetupAttachment(RootComponent);
 	AttackBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	InteractiveSphereCollision = CreateDefaultSubobject<USphereComponent>(TEXT("InteractiveSphereCollision"));
-	InteractiveSphereCollision->SetupAttachment(RootComponent);
-	InteractiveSphereCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	InteractiveBoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("InteractiveBoxCollision"));
+	InteractiveBoxCollision->SetupAttachment(GetMesh());
+	InteractiveBoxCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	ChangeMeshNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ChangeMeshNiagara"));
 	ChangeMeshNiagaraComponent->SetupAttachment(GetMesh());
@@ -173,6 +174,7 @@ void AGJCharacter::Decelerate()
 //跳跃
 void AGJCharacter::Jump()
 {
+	if(bCanRestart) return;
 	ACharacter::Jump();
 	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red,
 	// 	FString::Printf(TEXT("JumpCurrentCount：%d"),JumpCurrentCount));
@@ -181,6 +183,7 @@ void AGJCharacter::Jump()
 //停止跳跃
 void AGJCharacter::StopJumping()
 {
+	if(bCanRestart) return;
 	ACharacter::StopJumping();
 }
 
@@ -214,9 +217,9 @@ void AGJCharacter::Interactive()
 {
 	if(CharacterStates != ECharacterStates::E_Common && CharacterStates != ECharacterStates::E_Interaction) return;
 
-	InteractiveSphereCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	
-	InteractiveSphereCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	InteractiveBoxCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+
+	InteractiveBoxCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	
 }
 
@@ -346,10 +349,10 @@ void AGJCharacter::ChangeMesh(EChangeClass ChangeClassType)
 		case EChangeClass::E_Tree: Index = 2; break; //树
 		case EChangeClass::E_Stone: Index = 3; break; //石头
 	}
-
+	
 	//变身
 	if (ChangeMeshNiagaraSystem && ChangeMeshNiagaraComponent
-		&& ChangeMeshArray[Index] && ChangeMeshArrayAnims[Index])
+		&& ChangeMeshArray[Index])
 	{
 		ChangeMeshNiagaraComponent->SetAsset(ChangeMeshNiagaraSystem);
 		ChangeMeshNiagaraComponent->Activate();
@@ -372,15 +375,15 @@ void AGJCharacter::ChangeMesh(EChangeClass ChangeClassType)
 	}
 }
 
-//Q键变身
+//选择1变身
 void AGJCharacter::ChangeMesh_1()
 {
 	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red,
-	// 	FString::Printf(TEXT("ChangeClassType_QKey: %s"),*UEnum::GetValueAsString(ChangeClassType_QKey)));
-	if (CharacterStates == ECharacterStates::E_Common && ChangeClassType_QKey != EChangeClass::E_Human)
+	// 	FString::Printf(TEXT("ChangeClassType_1Key: %s"),*UEnum::GetValueAsString(ChangeClassType_1Key)));
+	if (CharacterStates == ECharacterStates::E_Common && ChangeClassType_1Key != EChangeClass::E_Human)
 	{
 		CharacterStates = ECharacterStates::E_ChangeMesh; //变身状态
-		ChangeMesh(ChangeClassType_QKey);
+		ChangeMesh(ChangeClassType_1Key);
 	}
 	else if (CharacterStates == ECharacterStates::E_ChangeMesh)
 	{
@@ -390,15 +393,15 @@ void AGJCharacter::ChangeMesh_1()
 	
 }
 
-//E键变身
+//选择2变身
 void AGJCharacter::ChangeMesh_2()
 {
 	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red,
-	// 	FString::Printf(TEXT("ChangeClassType_QKey: %s"),*UEnum::GetValueAsString(ChangeClassType_QKey)));
-	if (CharacterStates == ECharacterStates::E_Common && ChangeClassType_EKey != EChangeClass::E_Human)
+	// FString::Printf(TEXT("ChangeClassType_2Key: %s"),*UEnum::GetValueAsString(ChangeClassType_2Key)));
+	if (CharacterStates == ECharacterStates::E_Common && ChangeClassType_2Key != EChangeClass::E_Human)
 	{
 		CharacterStates = ECharacterStates::E_ChangeMesh; //变身状态
-		ChangeMesh(ChangeClassType_EKey);
+		ChangeMesh(ChangeClassType_2Key);
 	}
 	else if (CharacterStates == ECharacterStates::E_ChangeMesh)
 	{
@@ -406,5 +409,6 @@ void AGJCharacter::ChangeMesh_2()
 		ChangeMesh(EChangeClass::E_Human);
 	}
 }
+
 
 
