@@ -17,6 +17,10 @@ AOneStroke::AOneStroke()
 
 	UpBoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("UpBoxComponent"));
 	UpBoxComponent->SetupAttachment(BoxMesh);
+
+	BlockBoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("BlockBoxComponent"));
+	BlockBoxComponent->SetupAttachment(BoxMesh);
+	
 }
 
 // Called when the game starts or when spawned

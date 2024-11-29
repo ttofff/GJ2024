@@ -23,7 +23,8 @@ enum class ECharacterStates : uint8
 	E_OpenBackpack UMETA(DisplayName = "OpenBackpack"),//打开背包状态
 	E_OpenChangeMesh UMETA(DisplayName = "OpenChangeMesh"),//打开变身状态
 	E_ChangeMesh UMETA(DisplayName = "ChangeMesh"),//变身状态
-	E_SelectChangeMesh UMETA(DisplayName = "SelectChangeMesh")//选择变身状态
+	E_SelectChangeMesh UMETA(DisplayName = "SelectChangeMesh"),//选择变身状态
+	E_OpenTransfer UMETA(DisplayName = "OpenTransfer")//打开传送状态
 };
 
 //角色工具
@@ -56,6 +57,12 @@ enum class EChangeClass : uint8
 	E_Cat UMETA(DisplayName = "Cat"),//猫
 	E_Tree UMETA(DisplayName = "Tree"),//树
 	E_Stone UMETA(DisplayName = "Stone"),//石头
+	E_Sheep UMETA(DisplayName = "Sheep"),//羊
+	E_Cloud UMETA(DisplayName = "Cloud"),//云
+	E_Fish UMETA(DisplayName = "Fish"),//鱼
+	E_Flower UMETA(DisplayName = "Flower"),//花
+	E_Coconut UMETA(DisplayName = "Coconut"),//椰子
+	E_Hammer UMETA(DisplayName = "Hammer")//锤子z
 };
 
 //背包物品信息
@@ -114,6 +121,9 @@ class GJ2024_API AGJCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category = "NiagaraComponent", meta = (AllowPrivateAccess = "true"))
 	UNiagaraComponent* ChangeMeshNiagaraComponent;
 
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category = "ChangeMesh", meta = (AllowPrivateAccess = "true"))
+	USceneComponent* ChangeMeshSceneComponent;
+
 public:
 	//限制相机旋转角度
 	float ClampCameraRotation = 0.f;
@@ -128,7 +138,7 @@ public:
 
 	//疾跑速度
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "PlayerSpeed")
-	float AcceleratedSpeed;
+	float AcceleratedSpeed = 600.f;
 
 	//弹簧臂每次加减长度
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category = "PlayerCamera")
@@ -178,6 +188,14 @@ public:
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "UI")
 	bool IsOpenedChangeMesh = false;
 
+	//是否打开传送
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "UI")
+	bool IsOpenTransfer = false;
+
+	//是否已经打开传送
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "UI")
+	bool IsOpenedTransfer = false;
+
 	//快捷栏是否为空
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Tools")
 	TArray<bool> ShortcutIsEmpty;
@@ -191,14 +209,15 @@ public:
 	//变身粒子特效
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category = "NiagaraComponent")
 	UNiagaraSystem* ChangeMeshNiagaraSystem;
-	
-	//变身类型
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ChangeClass")
-	EChangeClass ChangeClassType_1Key = EChangeClass::E_Human;
 
 	//变身类型
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ChangeClass")
-	EChangeClass ChangeClassType_2Key = EChangeClass::E_Human;
+	TArray<EChangeClass> ChangeClassType_Keys =
+		{EChangeClass::E_Human, EChangeClass::E_Human, EChangeClass::E_Human};
+
+	//当前变身类型
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ChangeClass")
+	EChangeClass CurrentChangeClassType = EChangeClass::E_Human;
 
 	//模型数组
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category = "ChangeMesh")
@@ -208,6 +227,10 @@ public:
 	TArray<UClass*> ChangeMeshArrayAnims;
 
 	bool bIsChangingMesh = false;//是否正在变身
+
+	//是否在自动移动
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "AutoMoving")
+	bool bIsAutoMoving = false;
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "ChangeMesh")
 	bool bIsOpenSelectChangeMesh = false;
@@ -223,6 +246,52 @@ public:
 	//重新开始位置
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Restart")
 	FTransform RestartTransform;
+
+	//是否可以飞行
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Fly")
+	bool bIsFly = false;
+
+	//飞行速度
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Fly")
+	float FlySpeed = 600.f;
+
+	//变身时间
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "ChangeMesh")
+	float ChangeMeshTime = 40.f;
+
+	//最长变身时间
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "ChangeMesh")
+	float MaxChangeMeshTime = 40.f;
+
+	//是否产生石头
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "ChangeMesh")
+	bool IsSpawnStone = false;
+	
+	FTimerHandle ChangeMeshTimerHandle;
+
+	//变身冷却时间
+	FTimerHandle CoolingChangeMeshTimerHandle;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "ChangeMesh")
+	TArray<FVector> TransferLocation;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "ChangeMesh")
+	TArray<FText> TransferName;
+
+	//前进
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Movement")
+	bool bIsMoveForward = false;
+
+	//左右
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Movement")
+	bool bIsMoveRight = false;
+
+	// //是否在走直线上
+	// UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Movement")
+	// bool bIsGoStraight = false;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Movement")
+	int32 DirectionIndex = 0;
 	
 	//工作台合成信息
 	TMap<FString, TArray<TPair<FString, int32>>> WorkTables
@@ -289,6 +358,14 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void ChangeMesh_2();
 
+	void ChangeMesh_3();
+
+	void Fly(float DeltaTime);
+
+	void StartRecordChangeMeshTime();
+
+	void StartRecordCoolingChangeMeshTime();
+	
 public:
 	// Sets default values for this character's properties
 	AGJCharacter();
@@ -298,6 +375,9 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	UFUNCTION(BlueprintCallable)
+	FVector CalculateDirectionToAngle(const FVector& Direction);
 
 	//获取工作台合成信息
 	UFUNCTION(BlueprintCallable)

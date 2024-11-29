@@ -48,6 +48,10 @@ ArmLengthValue(10.f)
 	ChangeMeshNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ChangeMeshNiagara"));
 	ChangeMeshNiagaraComponent->SetupAttachment(GetMesh());
 	ChangeMeshNiagaraComponent->SetAutoActivate(false);
+
+	ChangeMeshSceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("ChangeMeshSceneComponent"));
+	ChangeMeshSceneComponent->SetupAttachment(RootComponent);
+	
 }
 
 // Called when the game starts or when spawned
@@ -62,6 +66,7 @@ void AGJCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	Fly(DeltaTime);
 }
 
 // Called to bind functionality to input
@@ -99,6 +104,7 @@ void AGJCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 	PlayerInputComponent->BindAction("ChangeMesh_1", IE_Pressed, this, &AGJCharacter::ChangeMesh_1);
 	PlayerInputComponent->BindAction("ChangeMesh_2", IE_Pressed, this, &AGJCharacter::ChangeMesh_2);
+	PlayerInputComponent->BindAction("ChangeMesh_3", IE_Pressed, this, &AGJCharacter::ChangeMesh_3);
 	
 }
 
@@ -127,30 +133,49 @@ void AGJCharacter::Look(float value)
 //左右移动视角
 void AGJCharacter::Turn(float value)
 {
-	if(CharacterStates == ECharacterStates::E_Interaction || CharacterStates == ECharacterStates::E_Build) return;//防止交互时移动
+	if(CharacterStates == ECharacterStates::E_Interaction || CharacterStates == ECharacterStates::E_Build || bIsAutoMoving) return;//防止交互时移动
 	AddControllerYawInput(value * RotationRate);
 }
 
 //前后移动
 void AGJCharacter::MoveForward(float value)
 {
-	if(CharacterStates == ECharacterStates::E_Interaction || CharacterStates == ECharacterStates::E_Build || bIsChangingMesh) return;//防止交互时移动
-	if ((Controller != nullptr) || (value != 0.0f))
+	if(CharacterStates == ECharacterStates::E_Interaction ||
+		CharacterStates == ECharacterStates::E_Build || bIsChangingMesh) return;//防止交互时移动
+	
+	if ((Controller != nullptr) && (value != 0.0f))
 	{
+		bIsMoveForward = true;
+		if (bIsAutoMoving)
+		{
+			DirectionIndex = value > 0 ? 1 : 4;
+			return;
+		}
+		
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
 
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 		AddMovementInput(Direction, value);
+		
 	}
 }
 
 //左右移动
 void AGJCharacter::MoveRight(float value)
 {
-	if(CharacterStates == ECharacterStates::E_Interaction || CharacterStates == ECharacterStates::E_Build || bIsChangingMesh) return;//防止交互时移动
-	if ((Controller != nullptr) || (value != 0.0f))
+	if(CharacterStates == ECharacterStates::E_Interaction || 
+	CharacterStates == ECharacterStates::E_Build || bIsChangingMesh) return;//防止交互时移动
+	
+	if ((Controller != nullptr) && (value != 0.0f))
 	{
+		bIsMoveRight = true;
+		if (bIsAutoMoving)
+		{
+			DirectionIndex = value > 0 ? 2 : 3;
+			return;
+		}
+		
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
 
@@ -174,8 +199,20 @@ void AGJCharacter::Decelerate()
 //跳跃
 void AGJCharacter::Jump()
 {
-	if(bCanRestart) return;
-	ACharacter::Jump();
+	for(auto Class : ChangeClassType_Keys)
+	{
+		if (CharacterStates == ECharacterStates::E_ChangeMesh)
+		{
+			switch (Class)
+			{
+				case EChangeClass::E_Cat: ACharacter::Jump(); break;
+				case EChangeClass::E_Cloud:
+					{
+						bIsFly = true; break;
+					}
+			}
+		}
+	}
 	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red,
 	// 	FString::Printf(TEXT("JumpCurrentCount：%d"),JumpCurrentCount));
 }
@@ -183,8 +220,17 @@ void AGJCharacter::Jump()
 //停止跳跃
 void AGJCharacter::StopJumping()
 {
-	if(bCanRestart) return;
-	ACharacter::StopJumping();
+	for(auto Class : ChangeClassType_Keys)
+	{
+		if (CharacterStates == ECharacterStates::E_ChangeMesh)
+		{
+			switch (Class)
+			{
+				case EChangeClass::E_Cat: ACharacter::StopJumping(); break;
+				case EChangeClass::E_Cloud: bIsFly = false; break;
+			}
+		}
+	}
 }
 
 //修改弹簧臂长度
@@ -215,6 +261,20 @@ void AGJCharacter::Attack()
 //交互物品
 void AGJCharacter::Interactive()
 {
+	if (CharacterStates == ECharacterStates::E_ChangeMesh || CharacterStates == ECharacterStates::E_OpenTransfer)
+	{
+		if (CurrentChangeClassType == EChangeClass::E_Stone && ChangeMeshTime >= MaxChangeMeshTime / 2)//石头类
+		{
+			ChangeMeshTime -= MaxChangeMeshTime / 2;
+			IsSpawnStone = true;
+			return;
+		}
+		if(CurrentChangeClassType == EChangeClass::E_Sheep)//羊类
+		{
+			IsOpenTransfer = true;
+			return;
+		}
+	}
 	if(CharacterStates != ECharacterStates::E_Common && CharacterStates != ECharacterStates::E_Interaction) return;
 
 	InteractiveBoxCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -331,7 +391,7 @@ void AGJCharacter::UsedShortcut_3()
 	UsedShortcut(2);
 }
 
-//变身
+//变身UI
 void AGJCharacter::OpenChangeMesh()
 {
 	if(CharacterStates != ECharacterStates::E_Common && CharacterStates != ECharacterStates::E_OpenChangeMesh) return;
@@ -342,12 +402,47 @@ void AGJCharacter::OpenChangeMesh()
 void AGJCharacter::ChangeMesh(EChangeClass ChangeClassType)
 {
 	int32 Index = -1;
+	FVector SpawnLocation;
+	FVector SpawnScale;
 	switch (ChangeClassType)
 	{
 		case EChangeClass::E_Human: Index = 0; break; //人
 		case EChangeClass::E_Cat: Index = 1; break; //猫
 		case EChangeClass::E_Tree: Index = 2; break; //树
-		case EChangeClass::E_Stone: Index = 3; break; //石头
+		case EChangeClass::E_Stone: Index = 3; break;//石头
+		case EChangeClass::E_Sheep: Index = 4; break; //羊
+		case EChangeClass::E_Fish: Index = 5; break; //鱼
+		case EChangeClass::E_Coconut:
+			{
+				AcceleratedSpeed = OriginalSpeed * 2.5f; //加速
+				Index = 6; break;
+			} //椰子
+		case EChangeClass::E_Cloud:
+			{
+				GetCharacterMovement()->GravityScale = 0.f;
+				GetCharacterMovement()->MovementMode = EMovementMode::MOVE_Flying; //飞行模式
+				SpawnLocation = ChangeMeshSceneComponent->GetRelativeLocation();
+				Index = 7; break;
+			} //云
+		case EChangeClass::E_Flower: Index = 8; break; //花
+		case EChangeClass::E_Hammer: Index = 9; break; //锤子
+	}
+
+	if(Index != 7)
+	{
+		GetCharacterMovement()->GravityScale = 1.f;
+		GetCharacterMovement()->MovementMode = EMovementMode::MOVE_Walking; //行走模式
+		SpawnLocation = FVector(0.f,0.f,-90.f);
+	}
+
+	if (Index != 3)
+	{
+		GetMesh()->SetRelativeScale3D(FVector(1.f));//缩小模型
+	}
+
+	if (Index != 6)
+	{
+		AcceleratedSpeed = OriginalSpeed * 1.5; //加速
 	}
 	
 	//变身
@@ -359,16 +454,29 @@ void AGJCharacter::ChangeMesh(EChangeClass ChangeClassType)
 
 		bIsChangingMesh = true;
 			
-		FTimerHandle ChangeMeshTimerHandle;
-		GetWorldTimerManager().SetTimer(ChangeMeshTimerHandle,[this, Index]()
+		FTimerHandle ChangeMeshTimerHandle1;
+		GetWorldTimerManager().SetTimer(ChangeMeshTimerHandle1,[this, Index,SpawnLocation, ChangeClassType]()
 		{
-			GetMesh()->SetSkeletalMesh(ChangeMeshArray[Index]);
-			GetMesh()->SetAnimClass(ChangeMeshArrayAnims[Index]);
+			GetMesh()->SetSkeletalMesh(ChangeMeshArray[Index]);//更换模型
+			GetMesh()->SetAnimClass(ChangeMeshArrayAnims[Index]);//更换动画类
+			
+			GetMesh()->SetRelativeLocation(SpawnLocation);
 			FTimerHandle ChangeMeshTimerHandle2;
-			GetWorldTimerManager().SetTimer(ChangeMeshTimerHandle2,[this]()
+			GetWorldTimerManager().SetTimer(ChangeMeshTimerHandle2,[this, Index, ChangeClassType]()
 			{
 				ChangeMeshNiagaraComponent->Deactivate();
+				
+				if (Index == 3)
+				{
+					GetMesh()->SetRelativeScale3D(FVector(3.f));//放大模型
+				}
+
+				CurrentChangeClassType = ChangeClassType;
 				bIsChangingMesh = false; //变身完成
+
+				if(Index != 0)
+				GetWorldTimerManager().SetTimer(ChangeMeshTimerHandle,this,
+					&AGJCharacter::StartRecordChangeMeshTime,0.1f,true);//记录变身时间
 			},0.2f,false);
 		},1.f,false);
 		
@@ -378,12 +486,11 @@ void AGJCharacter::ChangeMesh(EChangeClass ChangeClassType)
 //选择1变身
 void AGJCharacter::ChangeMesh_1()
 {
-	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red,
-	// 	FString::Printf(TEXT("ChangeClassType_1Key: %s"),*UEnum::GetValueAsString(ChangeClassType_1Key)));
-	if (CharacterStates == ECharacterStates::E_Common && ChangeClassType_1Key != EChangeClass::E_Human)
+	if (CharacterStates == ECharacterStates::E_Common && ChangeClassType_Keys[0] != EChangeClass::E_Human
+		&& ChangeMeshTime == MaxChangeMeshTime)
 	{
 		CharacterStates = ECharacterStates::E_ChangeMesh; //变身状态
-		ChangeMesh(ChangeClassType_1Key);
+		ChangeMesh(ChangeClassType_Keys[0]);
 	}
 	else if (CharacterStates == ECharacterStates::E_ChangeMesh)
 	{
@@ -396,18 +503,118 @@ void AGJCharacter::ChangeMesh_1()
 //选择2变身
 void AGJCharacter::ChangeMesh_2()
 {
-	// GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red,
-	// FString::Printf(TEXT("ChangeClassType_2Key: %s"),*UEnum::GetValueAsString(ChangeClassType_2Key)));
-	if (CharacterStates == ECharacterStates::E_Common && ChangeClassType_2Key != EChangeClass::E_Human)
+	if (CharacterStates == ECharacterStates::E_Common && ChangeClassType_Keys[1] != EChangeClass::E_Human
+		&& ChangeMeshTime == MaxChangeMeshTime)
 	{
 		CharacterStates = ECharacterStates::E_ChangeMesh; //变身状态
-		ChangeMesh(ChangeClassType_2Key);
+		ChangeMesh(ChangeClassType_Keys[1]);
 	}
 	else if (CharacterStates == ECharacterStates::E_ChangeMesh)
 	{
 		CharacterStates = ECharacterStates::E_Common; //变身状态
 		ChangeMesh(EChangeClass::E_Human);
 	}
+}
+
+//选择3变身
+void AGJCharacter::ChangeMesh_3()
+{
+	if(ChangeMeshTime != MaxChangeMeshTime) return;
+	if (CharacterStates == ECharacterStates::E_Common && ChangeClassType_Keys[2] != EChangeClass::E_Human
+		&& ChangeMeshTime == MaxChangeMeshTime)
+	{
+		CharacterStates = ECharacterStates::E_ChangeMesh; //变身状态
+		ChangeMesh(ChangeClassType_Keys[2]);
+	}
+	else if (CharacterStates == ECharacterStates::E_ChangeMesh)
+	{
+		CharacterStates = ECharacterStates::E_Common; //变身状态
+		ChangeMesh(EChangeClass::E_Human);
+	}
+}
+
+//飞行
+void AGJCharacter::Fly(float DeltaTime)
+{
+	if (bIsFly)
+	{
+		FVector NewLocation = GetActorLocation();
+		NewLocation.Z += FlySpeed * DeltaTime; // 每帧更新角色的 Z 坐标，使其向上飞行
+		SetActorLocation(NewLocation);
+	}
+}
+
+//记录变身时间
+void AGJCharacter::StartRecordChangeMeshTime()
+{
+	if (ChangeMeshTime > 0.f && CharacterStates == ECharacterStates::E_ChangeMesh)
+	{
+		ChangeMeshTime -= 0.1f;
+	}
+	else
+	{
+		if (ChangeMeshTime <= 0.f)
+		{
+			ChangeMeshTime = 0.f;
+			CharacterStates = ECharacterStates::E_Common; //变身状态
+			ChangeMesh(EChangeClass::E_Human); //变回人类
+		}
+		GetWorldTimerManager().ClearTimer(ChangeMeshTimerHandle);
+		GetWorldTimerManager().SetTimer(CoolingChangeMeshTimerHandle,this,
+			&AGJCharacter::StartRecordCoolingChangeMeshTime,0.1f,true); //冷却时间开始计时
+	}
+}
+
+//记录冷却时间
+void AGJCharacter::StartRecordCoolingChangeMeshTime()
+{
+	if (ChangeMeshTime < MaxChangeMeshTime)
+	{
+		ChangeMeshTime += 0.1f;
+	}
+	else
+	{
+		ChangeMeshTime = MaxChangeMeshTime; //变身时间重置
+		GetWorldTimerManager().ClearTimer(CoolingChangeMeshTimerHandle);
+	}
+}
+
+//计算方向向量
+FVector AGJCharacter::CalculateDirectionToAngle(const FVector& Direction)
+{
+	FVector NormalizedDirection = Direction.GetSafeNormal();
+
+	float AngleInRadians = FMath::Atan2(NormalizedDirection.Y, NormalizedDirection.X); // 计算方向与 X 轴之间的夹角（弧度）
+
+	float AngleInDegrees = FMath::RadiansToDegrees(AngleInRadians); // 将弧度转换为角度
+
+	// 将角度映射到四个分区
+	if (AngleInDegrees >= -45.f && AngleInDegrees < 45.f)
+	{
+		AngleInDegrees = 0.0f;
+	}
+	else if (AngleInDegrees >= 45.f && AngleInDegrees < 135.f)
+	{
+		AngleInDegrees = 90.0f;
+	}
+	else if (AngleInDegrees >= 135.f || AngleInDegrees < -135.f)
+	{
+		AngleInDegrees = 180.0f;
+	}
+	else
+	{
+		AngleInDegrees = -90.0f;
+	}
+
+	float Angle = FMath::DegreesToRadians(AngleInDegrees);
+
+	float X = FMath::Cos(Angle);
+	float Y = FMath::Sin(Angle);
+
+	FVector DirectionVector(X, Y, 0.f);
+	DirectionVector.Normalize();
+
+	return DirectionVector;
 }
 
 

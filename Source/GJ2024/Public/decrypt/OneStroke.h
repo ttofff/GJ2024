@@ -18,17 +18,31 @@ class GJ2024_API AOneStroke : public AActor
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OneStroke", meta = (AllowPrivateAccess = "true"))
 	UStaticMeshComponent* BoxMesh;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PushBox", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OneStroke", meta = (AllowPrivateAccess = "true"))
 	UBoxComponent* UpBoxComponent;
-	
-public:	
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OneStroke", meta = (AllowPrivateAccess = "true"))
+	UBoxComponent* BlockBoxComponent;
+
+public:
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "OneStroke")
+	bool bIsStepped = false;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "OneStroke")
+	bool IsEnd = false;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "OneStroke")
+	bool bIsCheck = false;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "OneStroke")
+	UMaterialInterface* OriginalMaterial;
 	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 public:
-	// Sets default values for this actor's properties
+	// Sets default values for this actor's properties`
 	AOneStroke();
 
 	// Called every frame
