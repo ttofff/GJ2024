@@ -2,8 +2,6 @@
 
 
 #include "GJCharacter.h"
-
-#include "../../../../../UE5/UE_5.2/Engine/Plugins/Experimental/NNE/Source/ThirdParty/onnxruntime/Dependencies/gsl/gsl-lite.hpp"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 
