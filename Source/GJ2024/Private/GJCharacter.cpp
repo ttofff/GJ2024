@@ -56,7 +56,8 @@ ArmLengthValue(10.f)
 void AGJCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	GetCharacterMovement()->MaxWalkSpeed = OriginalSpeed;
 }
 
 // Called every frame
@@ -414,7 +415,7 @@ void AGJCharacter::ChangeMesh(EChangeClass ChangeClassType)
 		case EChangeClass::E_Fish: Index = 5; break; //鱼
 		case EChangeClass::E_Coconut:
 			{
-				AcceleratedSpeed = OriginalSpeed * 2.5f; //加速
+				AcceleratedSpeed = OriginalSpeed * 2.25f; //加速
 				Index = 6; break;
 			} //椰子
 		case EChangeClass::E_Cloud:
@@ -432,7 +433,7 @@ void AGJCharacter::ChangeMesh(EChangeClass ChangeClassType)
 	{
 		GetCharacterMovement()->GravityScale = 1.f;
 		GetCharacterMovement()->MovementMode = EMovementMode::MOVE_Walking; //行走模式
-		SpawnLocation = FVector(0.f,0.f,-90.f);
+		SpawnLocation = FVector(0.f,0.f,-80.f);
 	}
 
 	if (Index != 3)
@@ -442,7 +443,7 @@ void AGJCharacter::ChangeMesh(EChangeClass ChangeClassType)
 
 	if (Index != 6)
 	{
-		AcceleratedSpeed = OriginalSpeed * 1.5; //加速
+		AcceleratedSpeed = OriginalSpeed * 1.8; //加速
 	}
 	
 	//变身
