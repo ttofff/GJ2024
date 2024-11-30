@@ -270,6 +270,10 @@ public:
 	//是否产生石头
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "ChangeMesh")
 	bool IsSpawnStone = false;
+
+	//是否产生木头
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "ChangeMesh")
+	bool IsSpawnTree = false;
 	
 	FTimerHandle ChangeMeshTimerHandle;
 

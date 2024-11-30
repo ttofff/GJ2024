@@ -2,6 +2,8 @@
 
 
 #include "GJCharacter.h"
+
+#include "../../../../../UE5/UE_5.2/Engine/Plugins/Experimental/NNE/Source/ThirdParty/onnxruntime/Dependencies/gsl/gsl-lite.hpp"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -273,6 +275,12 @@ void AGJCharacter::Interactive()
 			IsOpenTransfer = true;
 			return;
 		}
+		if (CurrentChangeClassType == EChangeClass::E_Tree)
+		{
+			ChangeMeshTime -= MaxChangeMeshTime;
+			IsSpawnTree = true;
+			return;
+		}
 	}
 	if(CharacterStates != ECharacterStates::E_Common && CharacterStates != ECharacterStates::E_Interaction) return;
 
@@ -415,6 +423,7 @@ void AGJCharacter::ChangeMesh(EChangeClass ChangeClassType)
 		case EChangeClass::E_Fish: Index = 5; break; //鱼
 		case EChangeClass::E_Coconut:
 			{
+				SpawnLocation = FVector(0.f,0.f,-70.f);
 				AcceleratedSpeed = OriginalSpeed * 2.25f; //加速
 				Index = 6; break;
 			} //椰子
@@ -429,17 +438,17 @@ void AGJCharacter::ChangeMesh(EChangeClass ChangeClassType)
 		case EChangeClass::E_Hammer: Index = 9; break; //锤子
 	}
 
-	if(Index != 7)
+	if(Index != 7 && Index != 6)
 	{
 		GetCharacterMovement()->GravityScale = 1.f;
 		GetCharacterMovement()->MovementMode = EMovementMode::MOVE_Walking; //行走模式
 		SpawnLocation = FVector(0.f,0.f,-80.f);
 	}
 
-	if (Index != 3)
-	{
-		GetMesh()->SetRelativeScale3D(FVector(1.f));//缩小模型
-	}
+	// if (Index != 3 && Index != 2)
+	// {
+	// 	GetMesh()->SetRelativeScale3D(FVector(1.f));//缩小模型
+	// }
 
 	if (Index != 6)
 	{
@@ -471,6 +480,11 @@ void AGJCharacter::ChangeMesh(EChangeClass ChangeClassType)
 				{
 					GetMesh()->SetRelativeScale3D(FVector(3.f));//放大模型
 				}
+				else if(Index == 2)
+				{
+					GetMesh()->SetRelativeScale3D(FVector(2.f));//放大模型
+				}
+				else GetMesh()->SetRelativeScale3D(FVector(1.f));
 
 				CurrentChangeClassType = ChangeClassType;
 				bIsChangingMesh = false; //变身完成
