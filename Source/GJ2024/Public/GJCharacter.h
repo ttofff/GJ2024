@@ -86,7 +86,7 @@ struct FBackpackInformation
 	int32 FoodCnt = 0;//食物数量
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
-	int32 MushroomCnt = 0;//蘑菇数量
+	int32 MushroomCnt = 3;//蘑菇数量
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	bool bHaveAxe = false;//是否拥有斧子

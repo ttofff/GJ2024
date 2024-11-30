@@ -269,7 +269,7 @@ void AGJCharacter::Interactive()
 			IsOpenTransfer = true;
 			return;
 		}
-		if (CurrentChangeClassType == EChangeClass::E_Tree)
+		if (CurrentChangeClassType == EChangeClass::E_Tree)//树类
 		{
 			ChangeMeshTime -= MaxChangeMeshTime;
 			IsSpawnTree = true;
@@ -319,6 +319,8 @@ void AGJCharacter::ReduceMaterials(FString MaterialItemName, int32 MaterialCnt)
 		BackpackInfo.IronCnt -= MaterialCnt;
 	else if(MaterialItemName == TEXT("蘑菇"))
 		BackpackInfo.MushroomCnt -= MaterialCnt;
+	else if(MaterialItemName == TEXT("斧子"))
+		BackpackInfo.bHaveAxe = false;
 }
 
 //得到物品
