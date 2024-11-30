@@ -200,17 +200,14 @@ void AGJCharacter::Decelerate()
 //跳跃
 void AGJCharacter::Jump()
 {
-	for(auto Class : ChangeClassType_Keys)
+	if (CharacterStates == ECharacterStates::E_ChangeMesh)
 	{
-		if (CharacterStates == ECharacterStates::E_ChangeMesh)
+		switch (CurrentChangeClassType)
 		{
-			switch (Class)
+		case EChangeClass::E_Cat: ACharacter::Jump(); break;
+		case EChangeClass::E_Cloud:
 			{
-				case EChangeClass::E_Cat: ACharacter::Jump(); break;
-				case EChangeClass::E_Cloud:
-					{
-						bIsFly = true; break;
-					}
+				bIsFly = true; break;
 			}
 		}
 	}
@@ -221,15 +218,12 @@ void AGJCharacter::Jump()
 //停止跳跃
 void AGJCharacter::StopJumping()
 {
-	for(auto Class : ChangeClassType_Keys)
+	if (CharacterStates == ECharacterStates::E_ChangeMesh)
 	{
-		if (CharacterStates == ECharacterStates::E_ChangeMesh)
+		switch (CurrentChangeClassType)
 		{
-			switch (Class)
-			{
-				case EChangeClass::E_Cat: ACharacter::StopJumping(); break;
-				case EChangeClass::E_Cloud: bIsFly = false; break;
-			}
+		case EChangeClass::E_Cat: ACharacter::StopJumping(); break;
+		case EChangeClass::E_Cloud: bIsFly = false; break;
 		}
 	}
 }
@@ -415,30 +409,30 @@ void AGJCharacter::ChangeMesh(EChangeClass ChangeClassType)
 	FVector SpawnScale;
 	switch (ChangeClassType)
 	{
-		case EChangeClass::E_Human: Index = 0; break; //人
-		case EChangeClass::E_Cat: Index = 1; break; //猫
-		case EChangeClass::E_Tree: Index = 2; break; //树
-		case EChangeClass::E_Stone: Index = 3; break;//石头
-		case EChangeClass::E_Sheep: Index = 4; break; //羊
-		case EChangeClass::E_Fish: Index = 5; break; //鱼
+		case EChangeClass::E_Human: Index = 0; SpawnScale = FVector(1.f); break; //人
+		case EChangeClass::E_Cat: Index = 1; SpawnScale = FVector(.3f); break; //猫
+		case EChangeClass::E_Tree: Index = 2; SpawnScale = FVector(2.f); break; //树
+		case EChangeClass::E_Stone: Index = 3; SpawnScale = FVector(3.f); break;//石头
+		case EChangeClass::E_Sheep: Index = 4; SpawnScale = FVector(.5f); break; //羊
 		case EChangeClass::E_Coconut:
 			{
 				SpawnLocation = FVector(0.f,0.f,-70.f);
+				SpawnScale = FVector(1.f); 
 				AcceleratedSpeed = OriginalSpeed * 2.25f; //加速
-				Index = 6; break;
+				Index = 5; break;
 			} //椰子
 		case EChangeClass::E_Cloud:
 			{
+				SpawnScale = FVector(1.f); 
 				GetCharacterMovement()->GravityScale = 0.f;
 				GetCharacterMovement()->MovementMode = EMovementMode::MOVE_Flying; //飞行模式
 				SpawnLocation = ChangeMeshSceneComponent->GetRelativeLocation();
-				Index = 7; break;
+				Index = 6; break;
 			} //云
-		case EChangeClass::E_Flower: Index = 8; break; //花
-		case EChangeClass::E_Hammer: Index = 9; break; //锤子
+		case EChangeClass::E_Flower: Index = 7;SpawnScale = FVector(1.f); break; //花
 	}
 
-	if(Index != 7 && Index != 6)
+	if(Index != 5 && Index != 6)
 	{
 		GetCharacterMovement()->GravityScale = 1.f;
 		GetCharacterMovement()->MovementMode = EMovementMode::MOVE_Walking; //行走模式
@@ -450,7 +444,7 @@ void AGJCharacter::ChangeMesh(EChangeClass ChangeClassType)
 	// 	GetMesh()->SetRelativeScale3D(FVector(1.f));//缩小模型
 	// }
 
-	if (Index != 6)
+	if (Index != 5)
 	{
 		AcceleratedSpeed = OriginalSpeed * 1.8; //加速
 	}
@@ -465,26 +459,18 @@ void AGJCharacter::ChangeMesh(EChangeClass ChangeClassType)
 		bIsChangingMesh = true;
 			
 		FTimerHandle ChangeMeshTimerHandle1;
-		GetWorldTimerManager().SetTimer(ChangeMeshTimerHandle1,[this, Index,SpawnLocation, ChangeClassType]()
+		GetWorldTimerManager().SetTimer(ChangeMeshTimerHandle1,[this, Index,SpawnLocation, ChangeClassType, SpawnScale]()
 		{
 			GetMesh()->SetSkeletalMesh(ChangeMeshArray[Index]);//更换模型
 			GetMesh()->SetAnimClass(ChangeMeshArrayAnims[Index]);//更换动画类
+
+			GetMesh()->SetRelativeScale3D(FVector(SpawnScale));
 			
 			GetMesh()->SetRelativeLocation(SpawnLocation);
 			FTimerHandle ChangeMeshTimerHandle2;
 			GetWorldTimerManager().SetTimer(ChangeMeshTimerHandle2,[this, Index, ChangeClassType]()
 			{
 				ChangeMeshNiagaraComponent->Deactivate();
-				
-				if (Index == 3)
-				{
-					GetMesh()->SetRelativeScale3D(FVector(3.f));//放大模型
-				}
-				else if(Index == 2)
-				{
-					GetMesh()->SetRelativeScale3D(FVector(2.f));//放大模型
-				}
-				else GetMesh()->SetRelativeScale3D(FVector(1.f));
 
 				CurrentChangeClassType = ChangeClassType;
 				bIsChangingMesh = false; //变身完成

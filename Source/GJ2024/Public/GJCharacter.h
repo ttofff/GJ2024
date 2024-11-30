@@ -60,10 +60,8 @@ enum class EChangeClass : uint8
 	E_Stone UMETA(DisplayName = "Stone"),//石头
 	E_Sheep UMETA(DisplayName = "Sheep"),//羊
 	E_Cloud UMETA(DisplayName = "Cloud"),//云
-	E_Fish UMETA(DisplayName = "Fish"),//鱼
 	E_Flower UMETA(DisplayName = "Flower"),//花
-	E_Coconut UMETA(DisplayName = "Coconut"),//椰子
-	E_Hammer UMETA(DisplayName = "Hammer")//锤子
+	E_Coconut UMETA(DisplayName = "Coconut")//椰子
 };
 
 //背包物品信息
