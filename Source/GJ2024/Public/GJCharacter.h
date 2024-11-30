@@ -40,13 +40,14 @@ enum class ETools : uint8
 UENUM(BlueprintType)
 enum class EBackpackClass : uint8
 {
-	E_Wood UMETA(DisplayName = "Wood"),//木材
-	E_Stone UMETA(DisplayName = "Stone"),//石头
-	E_Iron UMETA(DisplayName = "Iron"),//铁矿
-	E_Food UMETA(DisplayName = "Food"),//食物
-	E_Axe UMETA(DisplayName = "Axe"),//斧子
-	E_Pickaxe UMETA(DisplayName = "Pickaxe"),//镐子
-	E_Hammer UMETA(DisplayName = "Hammer")//锤子
+	Wood UMETA(DisplayName = "Wood"),//木材
+	Stone UMETA(DisplayName = "Stone"),//石头
+	Iron UMETA(DisplayName = "Iron"),//铁矿
+	Food UMETA(DisplayName = "Food"),//食物
+	Axe UMETA(DisplayName = "Axe"),//斧子
+	Pickaxe UMETA(DisplayName = "Pickaxe"),//镐子
+	Hammer UMETA(DisplayName = "Hammer"),//锤子
+	Mushroom UMETA(DisplayName = "Mushroom")//蘑菇
 };
 
 //角色变身种类
@@ -62,7 +63,7 @@ enum class EChangeClass : uint8
 	E_Fish UMETA(DisplayName = "Fish"),//鱼
 	E_Flower UMETA(DisplayName = "Flower"),//花
 	E_Coconut UMETA(DisplayName = "Coconut"),//椰子
-	E_Hammer UMETA(DisplayName = "Hammer")//锤子z
+	E_Hammer UMETA(DisplayName = "Hammer")//锤子
 };
 
 //背包物品信息
@@ -85,6 +86,9 @@ struct FBackpackInformation
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	int32 FoodCnt = 0;//食物数量
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	int32 MushroomCnt = 0;//蘑菇数量
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite)
 	bool bHaveAxe = false;//是否拥有斧子

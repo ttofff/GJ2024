@@ -316,6 +316,8 @@ void AGJCharacter::ReduceMaterials(FString MaterialItemName, int32 MaterialCnt)
 		BackpackInfo.StoneCnt -= MaterialCnt;
 	else if(MaterialItemName == TEXT("铁块"))
 		BackpackInfo.IronCnt -= MaterialCnt;
+	else if(MaterialItemName == TEXT("蘑菇"))
+		BackpackInfo.MushroomCnt -= MaterialCnt;
 }
 
 //得到物品
