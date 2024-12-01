@@ -4,6 +4,7 @@
 #include "GJCharacter.h"
 
 #include "../../../../../UE5/UE_5.2/Engine/Plugins/Experimental/NNE/Source/ThirdParty/onnxruntime/Dependencies/gsl/gsl-lite.hpp"
+#include "Components/AudioComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -60,6 +61,15 @@ void AGJCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	GetCharacterMovement()->MaxWalkSpeed = OriginalSpeed;
+
+	if (BGM)
+	{
+		BGMComponent = UGameplayStatics::CreateSound2D(this, BGM);
+		if (BGMComponent)
+		{
+			BGMComponent->Play();
+		}
+	}
 }
 
 // Called every frame
@@ -142,7 +152,7 @@ void AGJCharacter::Turn(float value)
 void AGJCharacter::MoveForward(float value)
 {
 	if(CharacterStates == ECharacterStates::E_Interaction ||
-		CharacterStates == ECharacterStates::E_Build || bIsChangingMesh) return;//防止交互时移动
+		CharacterStates == ECharacterStates::E_Build || bIsChangingMesh || IsSequence) return;//防止交互时移动
 	
 	if ((Controller != nullptr) && (value != 0.0f))
 	{
@@ -166,7 +176,7 @@ void AGJCharacter::MoveForward(float value)
 void AGJCharacter::MoveRight(float value)
 {
 	if(CharacterStates == ECharacterStates::E_Interaction || 
-	CharacterStates == ECharacterStates::E_Build || bIsChangingMesh) return;//防止交互时移动
+	CharacterStates == ECharacterStates::E_Build || bIsChangingMesh || IsSequence) return;//防止交互时移动
 	
 	if ((Controller != nullptr) && (value != 0.0f))
 	{
@@ -466,7 +476,7 @@ void AGJCharacter::ChangeMesh(EChangeClass ChangeClassType)
 			GetMesh()->SetSkeletalMesh(ChangeMeshArray[Index]);//更换模型
 			GetMesh()->SetAnimClass(ChangeMeshArrayAnims[Index]);//更换动画类
 
-			GetMesh()->SetRelativeScale3D(FVector(SpawnScale));
+			GetMesh()->SetRelativeScale3D(SpawnScale);//设置模型大小
 			
 			GetMesh()->SetRelativeLocation(SpawnLocation);
 			FTimerHandle ChangeMeshTimerHandle2;

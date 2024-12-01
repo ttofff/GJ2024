@@ -9,6 +9,7 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Sound/SoundCue.h"
 #include "GJCharacter.generated.h"
 
 //角色状态
@@ -298,6 +299,18 @@ public:
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Movement")
 	int32 DirectionIndex = 0;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Movement")		
+	FTransform CampTransform;
+
+	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="BGM")
+	UAudioComponent* BGMComponent;
+
+	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="BGM")
+	USoundCue* BGM;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Sequence")
+	bool IsSequence = false;
 	
 	//工作台合成信息
 	TMap<FString, TArray<TPair<FString, int32>>> WorkTables
