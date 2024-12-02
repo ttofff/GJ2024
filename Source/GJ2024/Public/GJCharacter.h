@@ -307,7 +307,10 @@ public:
 	UAudioComponent* BGMComponent;
 
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="BGM")
-	USoundCue* BGM;
+	TArray<USoundBase*> BGM;
+
+	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="BGM")
+	int32 CurrentMusicIndex = 0;
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Sequence")
 	bool IsSequence = false;
@@ -320,7 +323,6 @@ public:
 		{TEXT("锄头"),{{TEXT("木材"), 2}, {TEXT("石头"), 2}}},
 		{TEXT("锤子"),{{TEXT("木材"), 3}, {TEXT("石头"), 3}}}
 	};
-
 	
 protected:
 	// Called when the game starts or when spawned
@@ -384,6 +386,8 @@ protected:
 	void StartRecordChangeMeshTime();
 
 	void StartRecordCoolingChangeMeshTime();
+
+	void PlayNextMusic();
 	
 public:
 	// Sets default values for this character's properties

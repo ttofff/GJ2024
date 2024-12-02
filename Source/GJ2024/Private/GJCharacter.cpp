@@ -62,9 +62,10 @@ void AGJCharacter::BeginPlay()
 
 	GetCharacterMovement()->MaxWalkSpeed = OriginalSpeed;
 
-	if (BGM)
+	if (!BGM.IsEmpty())
 	{
-		BGMComponent = UGameplayStatics::CreateSound2D(this, BGM);
+		CurrentMusicIndex = FMath::RandRange(0, BGM.Num() - 1);
+		BGMComponent = UGameplayStatics::SpawnSound2D(this, BGM[CurrentMusicIndex]);
 		if (BGMComponent)
 		{
 			BGMComponent->Play();
@@ -78,6 +79,10 @@ void AGJCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	Fly(DeltaTime);
+	if (!BGMComponent->IsPlaying())
+	{
+		PlayNextMusic();
+	}
 }
 
 // Called to bind functionality to input
@@ -590,6 +595,16 @@ void AGJCharacter::StartRecordCoolingChangeMeshTime()
 		ChangeMeshTime = MaxChangeMeshTime; //变身时间重置
 		GetWorldTimerManager().ClearTimer(CoolingChangeMeshTimerHandle);
 	}
+}
+
+//
+void AGJCharacter::PlayNextMusic()
+{
+	BGMComponent->Stop();
+
+	CurrentMusicIndex = (CurrentMusicIndex + 1) % BGM.Num();
+	BGMComponent = UGameplayStatics::SpawnSound2D(this, BGM[CurrentMusicIndex]);
+	BGMComponent->Play();
 }
 
 //计算方向向量
