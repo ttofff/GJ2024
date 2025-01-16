@@ -597,7 +597,7 @@ void AGJCharacter::StartRecordCoolingChangeMeshTime()
 	}
 }
 
-//
+//播放下一首音乐
 void AGJCharacter::PlayNextMusic()
 {
 	BGMComponent->Stop();
